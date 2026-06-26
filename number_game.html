@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数字合成游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .game-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 10px;
+        }
+
+        .score-item {
+            text-align: center;
+        }
+
+        .score-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .score-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            background: #bbada0;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: #cdc1b4;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            font-weight: bold;
+            transition: all 0.15s ease;
+        }
+
+        .cell[data-value="6"] { background: #87CEEB; color: #fff; }
+        .cell[data-value="7"] { background: #90EE90; color: #333; }
+        .cell[data-value="8"] { background: #FFB6C1; color: #333; }
+        .cell[data-value="1"] { background: #DDA0DD; color: #fff; }
+        .cell[data-value="13"] { background: #FFA07A; color: #fff; }
+        .cell[data-value="78"] { background: #20B2AA; color: #fff; }
+        .cell[data-value="91"] { background: #FFD700; color: #333; }
+        .cell[data-value="9"] { background: #FF6347; color: #fff; }
+        .cell[data-value="69"] { background: #9370DB; color: #fff; }
+
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            max-width: 200px;
+            margin: 0 auto 20px;
+        }
+
+        .btn {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: #667eea;
+            color: white;
+            font-size: 18px;
+            cursor: pointer;
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        .btn:hover {
+            background: #5a6fd6;
+            transform: scale(1.05);
+        }
+
+        .btn:active {
+            transform: scale(0.95);
+        }
+
+        .btn-new {
+            grid-column: 1 / -1;
+            background: #28a745;
+            margin-top: 10px;
+        }
+
+        .btn-new:hover {
+            background: #218838;
+        }
+
+        .message {
+            text-align: center;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            font-weight: bold;
+            display: none;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            display: block;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            display: block;
+        }
+
+        .rules {
+            font-size: 12px;
+            color: #666;
+            line-height: 1.6;
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .rules h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🎮 数字合成游戏</h1>
+        
+        <div class="score-board">
+            <div class="score-item">
+                <div class="score-label">步数</div>
+                <div class="score-value" id="moves">0</div>
+            </div>
+            <div class="score-item">
+                <div class="score-label">最高数字</div>
+                <div class="score-value" id="max-tile">0</div>
+            </div>
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <div class="grid" id="grid"></div>
+
+        <div class="controls">
+            <button class="btn" onclick="move('up')">↑</button>
+            <button class="btn" onclick="move('left')">←</button>
+            <button class="btn" onclick="move('right')">→</button>
+            <button class="btn" onclick="move('down')">↓</button>
+            <button class="btn btn-new" onclick="newGame()">新游戏</button>
+        </div>
+
+        <div class="rules">
+            <h3>📜 游戏规则</h3>
+            <p><strong>生成:</strong> 随机生成 6, 7, 8</p>
+            <p><strong>竖向合成:</strong> 6→7=13, 7→6=1, 8→7=1, 13↔78=91, 91↔1=9</p>
+            <p><strong>横向合成:</strong> 7→8=78, 13↔78=91, 6→9=69, 91↔1=9</p>
+            <p><strong>消失:</strong> 6,7,8,9 间未定义组合碰撞消失</p>
+            <p><strong>胜利:</strong> 横向排列 [91, 78, 69]</p>
+        </div>
+    </div>
+
+    <script>
+        let grid = [];
+        let moves = 0;
+        let gameOver = false;
+        let gameWon = false;
+
+        function initGrid() {
+            grid = Array(4).fill(null).map(() => Array(4).fill(0));
+        }
+
+        function addRandomTile() {
+            const emptyCells = [];
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    if (grid[i][j] === 0) {
+                        emptyCells.push({r: i, c: j});
+                    }
+                }
+            }
+            
+            if (emptyCells.length > 0) {
+                const {r, c} = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                const values = [6, 7, 8];
+                grid[r][c] = values[Math.floor(Math.random() * values.length)];
+            }
+        }
+
+        function renderGrid() {
+            const gridEl = document.getElementById('grid');
+            gridEl.innerHTML = '';
+            
+            let maxTile = 0;
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    const value = grid[i][j];
+                    if (value !== 0) {
+                        cell.textContent = value;
+                        cell.setAttribute('data-value', value.toString());
+                        if (value > maxTile) maxTile = value;
+                    }
+                    gridEl.appendChild(cell);
+                }
+            }
+            
+            document.getElementById('moves').textContent = moves;
+            document.getElementById('max-tile').textContent = maxTile;
+        }
+
+        function getCombineResult(a, b, direction) {
+            if (a === 0 || b === 0) return null;
+            
+            // 竖向合成 (上下方向)
+            if (direction === 'up' || direction === 'down') {
+                if (a === 6 && b === 7) return 13;
+                if (a === 7 && b === 6) return 1;
+                if (a === 8 && b === 7) return 1;
+                if ((a === 13 && b === 78) || (a === 78 && b === 13)) return 91;
+                if ((a === 91 && b === 1) || (a === 1 && b === 91)) return 9;
+            }
+            
+            // 横向合成 (左右方向)
+            if (direction === 'left' || direction === 'right') {
+                if (a === 7 && b === 8) return 78;
+                if ((a === 13 && b === 78) || (a === 78 && b === 13)) return 91;
+                if (a === 6 && b === 9) return 69;
+                if ((a === 91 && b === 1) || (a === 1 && b === 91)) return 9;
+            }
+            
+            // 检查是否应该消失 (6,7,8,9 之间未定义的碰撞)
+            const vanishSet = new Set([6, 7, 8, 9]);
+            if (vanishSet.has(a) && vanishSet.has(b)) {
+                return 'vanish';
+            }
+            
+            return null; // 无反应
+        }
+
+        function processLine(line, direction) {
+            // 移除空格
+            let filtered = line.filter(x => x !== 0);
+            let result = [];
+            let skip = false;
+            
+            for (let i = 0; i < filtered.length; i++) {
+                if (skip) {
+                    skip = false;
+                    continue;
+                }
+                
+                if (i + 1 < filtered.length) {
+                    const a = filtered[i];
+                    const b = filtered[i + 1];
+                    const res = getCombineResult(a, b, direction);
+                    
+                    if (res === 'vanish') {
+                        // 两者都消失
+                        skip = true;
+                        continue;
+                    } else if (res !== null) {
+                        // 合成
+                        result.push(res);
+                        skip = true;
+                        continue;
+                    }
+                }
+                
+                result.push(filtered[i]);
+            }
+            
+            // 填充空格到末尾
+            while (result.length < 4) {
+                result.push(0);
+            }
+            
+            return result;
+        }
+
+        function move(direction) {
+            if (gameOver || gameWon) return;
+            
+            let changed = false;
+            let newGrid = grid.map(row => [...row]);
+            
+            if (direction === 'left' || direction === 'right') {
+                for (let i = 0; i < 4; i++) {
+                    let line = [...newGrid[i]];
+                    if (direction === 'right') {
+                        line.reverse();
+                    }
+                    const processed = processLine(line, direction);
+                    if (direction === 'right') {
+                        processed.reverse();
+                    }
+                    if (JSON.stringify(newGrid[i]) !== JSON.stringify(processed)) {
+                        changed = true;
+                    }
+                    newGrid[i] = processed;
+                }
+            } else {
+                for (let j = 0; j < 4; j++) {
+                    let line = [newGrid[0][j], newGrid[1][j], newGrid[2][j], newGrid[3][j]];
+                    if (direction === 'down') {
+                        line.reverse();
+                    }
+                    const processed = processLine(line, direction);
+                    if (direction === 'down') {
+                        processed.reverse();
+                    }
+                    for (let i = 0; i < 4; i++) {
+                        if (newGrid[i][j] !== processed[i]) {
+                            changed = true;
+                        }
+                        newGrid[i][j] = processed[i];
+                    }
+                }
+            }
+            
+            if (changed) {
+                grid = newGrid;
+                moves++;
+                addRandomTile();
+                renderGrid();
+                checkWin();
+                checkGameOver();
+            }
+        }
+
+        function checkWin() {
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j <= 1; j++) {
+                    if (grid[i][j] === 91 && grid[i][j+1] === 78 && grid[i][j+2] === 69) {
+                        gameWon = true;
+                        showMessage('🎉 恭喜获胜！目标达成：[91, 78, 69]', 'success');
+                        return;
+                    }
+                }
+            }
+        }
+
+        function checkGameOver() {
+            // 检查是否有空格
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    if (grid[i][j] === 0) return;
+                }
+            }
+            
+            // 检查是否还能移动或合成
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    const current = grid[i][j];
+                    // 检查右边
+                    if (j < 3) {
+                        const right = grid[i][j+1];
+                        if (getCombineResult(current, right, 'right') !== null) return;
+                    }
+                    // 检查下边
+                    if (i < 3) {
+                        const down = grid[i+1][j];
+                        if (getCombineResult(current, down, 'down') !== null) return;
+                    }
+                }
+            }
+            
+            gameOver = true;
+            showMessage('💀 游戏结束！无法继续移动', 'info');
+        }
+
+        function showMessage(text, type) {
+            const msgEl = document.getElementById('message');
+            msgEl.textContent = text;
+            msgEl.className = 'message ' + type;
+        }
+
+        function newGame() {
+            initGrid();
+            moves = 0;
+            gameOver = false;
+            gameWon = false;
+            document.getElementById('message').className = 'message';
+            
+            // 初始添加几个数字
+            addRandomTile();
+            addRandomTile();
+            addRandomTile();
+            
+            renderGrid();
+        }
+
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowUp': move('up'); break;
+                case 'ArrowDown': move('down'); break;
+                case 'ArrowLeft': move('left'); break;
+                case 'ArrowRight': move('right'); break;
+            }
+        });
+
+        // 启动游戏
+        newGame();
+    </script>
+</body>
+</html>
