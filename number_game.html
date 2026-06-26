@@ -201,7 +201,7 @@
             <p><strong>生成:</strong> 随机生成 6, 7, 8</p>
             <p><strong>竖向合成:</strong> 6→7=13, 7→6=1, 8→7=1, 13↔78=91, 91↔1=9</p>
             <p><strong>横向合成:</strong> 7→8=78, 13↔78=91, 6→9=69, 91↔1=9</p>
-            <p><strong>消失:</strong> 6,7,8,9 间未定义组合碰撞消失</p>
+            <p><strong>消失:</strong> 1,6,7,8,9 间未定义组合碰撞消失</p>
             <p><strong>胜利:</strong> 横向排列 [91, 78, 69]</p>
         </div>
     </div>
@@ -276,8 +276,8 @@
                 if ((a === 91 && b === 1) || (a === 1 && b === 91)) return 9;
             }
             
-            // 检查是否应该消失 (6,7,8,9 之间未定义的碰撞)
-            const vanishSet = new Set([6, 7, 8, 9]);
+            // 检查是否应该消失 (1,6,7,8,9 之间未定义的碰撞)
+            const vanishSet = new Set([1, 6, 7, 8, 9]);
             if (vanishSet.has(a) && vanishSet.has(b)) {
                 return 'vanish';
             }
