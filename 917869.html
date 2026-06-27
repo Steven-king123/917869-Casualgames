@@ -1,173 +1,262 @@
-<!DOCTYPE html>
+<!DOCTYPE html>｛｝
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>数字合成游戏</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    :root {
+        --bg1: #0f1021;
+        --bg2: #1b1f4a;
+        --bg3: #2b0f45;
+        --glass: rgba(255, 255, 255, 0.1);
+        --glass-stroke: rgba(255, 255, 255, 0.28);
+        --text-main: #f5f7ff;
+        --text-sub: #b6bee0;
+        --ok: #36d1dc;
+    }
 
-        body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
 
+    html,
+    body {
+        width: 100%;
+        height: 100%;
+    }
+
+    body {
+        font-family: "Inter", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+        background:
+            radial-gradient(circle at 15% 20%, #2a1a78 0%, transparent 32%),
+            radial-gradient(circle at 85% 10%, #1f5dbe 0%, transparent 30%),
+            radial-gradient(circle at 50% 100%, #4f1d6f 0%, transparent 34%),
+            linear-gradient(135deg, var(--bg1), var(--bg2), var(--bg3));
+        color: var(--text-main);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 22px;
+        overflow: hidden;
+    }
+
+    .game-container {
+        width: min(520px, 92vw);
+        background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.02));
+        border: 1px solid var(--glass-stroke);
+        border-radius: 24px;
+        padding: 24px;
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .game-container::before {
+        content: "";
+        position: absolute;
+        inset: -40%;
+        background: conic-gradient(from 180deg at 50% 50%, rgba(255, 255, 255, 0.15), transparent 40%, transparent);
+        animation: spin 28s linear infinite;
+        z-index: 0;
+        opacity: 0.25;
+        pointer-events: none;
+    }
+
+    .game-container > * {
+        position: relative;
+        z-index: 1;
+    }
+
+    h1 {
+        text-align: center;
+        margin-bottom: 6px;
+        font-size: clamp(1.35rem, 4vw, 2rem);
+        letter-spacing: 1px;
+        background: linear-gradient(90deg, #f9d423, #ff4e50, #24c6dc);
+        -webkit-background-clip: text;
+        color: transparent;
+    }
+
+    .subtitle {
+        text-align: center;
+        color: var(--text-sub);
+        margin-bottom: 14px;
+        font-size: 12px;
+    }
+
+    .score-board {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 14px;
+    }
+
+    .score-item {
+        background: var(--glass);
+        border: 1px solid var(--glass-stroke);
+        border-radius: 14px;
+        text-align: center;
+        padding: 12px 8px;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+
+    .score-label {
+        color: var(--text-sub);
+        font-size: 12px;
+    }
+
+    .score-value {
+        margin-top: 4px;
+        color: var(--text-main);
+        font-size: clamp(1.3rem, 3vw, 1.7rem);
+        font-weight: 800;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 10px rgba(255, 255, 255, 0.25);
+    }
+
+    .message {
+        text-align: center;
+        padding: 12px 14px;
+        margin-bottom: 14px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 14px;
+        display: none;
+    }
+
+    .message.success {
+        background: rgba(54, 209, 220, 0.16);
+        color: #7fffd4;
+        border: 1px solid rgba(54, 209, 220, 0.45);
+        display: block;
+    }
+
+    .message.info {
+        background: rgba(173, 216, 255, 0.16);
+        color: #a8d8ff;
+        border: 1px solid rgba(168, 216, 255, 0.35);
+        display: block;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        background: rgba(0, 0, 0, 0.22);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        padding: 14px;
+        border-radius: 16px;
+        margin-bottom: 14px;
+        position: relative;
+        box-shadow: inset 0 0 18px rgba(255, 255, 255, 0.08);
+    }
+
+    .cell {
+        aspect-ratio: 1 / 1;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 10px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-weight: 800;
+        font-size: clamp(1.2rem, 3.5vw, 1.9rem);
+        transition: transform 0.18s ease, background 0.3s ease, box-shadow 0.3s ease;
+        color: #fff;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    }
+
+    .cell[data-value="6"] { background: linear-gradient(135deg, #38bdf8, #0ea5e9); box-shadow: 0 0 12px rgba(14, 165, 233, 0.45); }
+    .cell[data-value="7"] { background: linear-gradient(135deg, #4ade80, #16a34a); box-shadow: 0 0 12px rgba(22, 163, 74, 0.35); }
+    .cell[data-value="8"] { background: linear-gradient(135deg, #f472b6, #db2777); box-shadow: 0 0 12px rgba(219, 39, 119, 0.35); }
+    .cell[data-value="1"] { background: linear-gradient(135deg, #c084fc, #8b5cf6); box-shadow: 0 0 12px rgba(139, 92, 246, 0.45); }
+    .cell[data-value="13"] { background: linear-gradient(135deg, #fb923c, #f97316); box-shadow: 0 0 12px rgba(249, 115, 22, 0.4); color: #fff; }
+    .cell[data-value="78"] { background: linear-gradient(135deg, #67e8f9, #06b6d4); box-shadow: 0 0 12px rgba(6, 182, 212, 0.4); color: #0b1020; }
+    .cell[data-value="91"] { background: linear-gradient(135deg, #fde047, #f59e0b); box-shadow: 0 0 12px rgba(245, 158, 11, 0.45); color: #3b2f00; }
+    .cell[data-value="9"] { background: linear-gradient(135deg, #f87171, #dc2626); box-shadow: 0 0 12px rgba(220, 38, 38, 0.4); }
+
+    .tile-pop {
+        animation: tilePop .22s cubic-bezier(.2, 1.2, .3, 1);
+    }
+
+    .controls {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+        max-width: 280px;
+        margin: 0 auto 14px;
+    }
+
+    .btn {
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        height: 56px;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.85), rgba(76, 91, 196, 0.85));
+        color: #fff;
+        font-size: 21px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: transform 0.12s ease, filter 0.2s ease;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+    }
+
+    .btn:hover {
+        filter: brightness(1.08);
+        transform: translateY(-1px);
+    }
+
+    .btn:active {
+        transform: translateY(1px) scale(0.98);
+    }
+
+    .btn-new {
+        grid-column: 1 / -1;
+        height: 50px;
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+    }
+
+    .rules {
+        margin-top: 12px;
+        padding: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.06);
+        color: #d6ddff;
+        font-size: 12px;
+        line-height: 1.7;
+    }
+
+    .rules h3 {
+        color: #ffffff;
+        margin-bottom: 6px;
+    }
+
+    @keyframes tilePop {
+        0% { transform: scale(0.85); }
+        100% { transform: scale(1); }
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 480px) {
         .game-container {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            max-width: 500px;
-            width: 100%;
-        }
-
-        h1 {
-            text-align: center;
-            color: #333;
-            margin-bottom: 10px;
-            font-size: 28px;
-        }
-
-        .score-board {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f0f0f0;
-            border-radius: 10px;
-        }
-
-        .score-item {
-            text-align: center;
-        }
-
-        .score-label {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 5px;
-        }
-
-        .score-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #333;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            background: #bbada0;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
+            padding: 16px;
+            border-radius: 18px;
         }
 
         .cell {
-            aspect-ratio: 1;
-            background: #cdc1b4;
-            border-radius: 8px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: 24px;
-            font-weight: bold;
-            transition: all 0.15s ease;
+            font-size: clamp(1.05rem, 7vw, 1.45rem);
         }
-
-        .cell[data-value="6"] { background: #87CEEB; color: #fff; }
-        .cell[data-value="7"] { background: #90EE90; color: #333; }
-        .cell[data-value="8"] { background: #FFB6C1; color: #333; }
-        .cell[data-value="1"] { background: #DDA0DD; color: #fff; }
-        .cell[data-value="13"] { background: #FFA07A; color: #fff; }
-        .cell[data-value="78"] { background: #20B2AA; color: #fff; }
-        .cell[data-value="91"] { background: #FFD700; color: #333; }
-        .cell[data-value="9"] { background: #FF6347; color: #fff; }
-        .cell[data-value="69"] { background: #9370DB; color: #fff; }
-
-        .controls {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            max-width: 200px;
-            margin: 0 auto 20px;
-        }
-
-        .btn {
-            padding: 15px;
-            border: none;
-            border-radius: 10px;
-            background: #667eea;
-            color: white;
-            font-size: 18px;
-            cursor: pointer;
-            transition: transform 0.1s, background 0.2s;
-        }
-
-        .btn:hover {
-            background: #5a6fd6;
-            transform: scale(1.05);
-        }
-
-        .btn:active {
-            transform: scale(0.95);
-        }
-
-        .btn-new {
-            grid-column: 1 / -1;
-            background: #28a745;
-            margin-top: 10px;
-        }
-
-        .btn-new:hover {
-            background: #218838;
-        }
-
-        .message {
-            text-align: center;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 10px;
-            font-weight: bold;
-            display: none;
-        }
-
-        .message.success {
-            background: #d4edda;
-            color: #155724;
-            display: block;
-        }
-
-        .message.info {
-            background: #d1ecf1;
-            color: #0c5460;
-            display: block;
-        }
-
-        .rules {
-            font-size: 12px;
-            color: #666;
-            line-height: 1.6;
-            margin-top: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 10px;
-        }
-
-        .rules h3 {
-            margin-bottom: 10px;
-            color: #333;
-        }
+    }
     </style>
+
 </head>
 <body>
     <div class="game-container">
@@ -234,27 +323,32 @@
             }
         }
 
-        function renderGrid() {
+        let lastRenderGrid = null;
+        function renderGrid() {    
             const gridEl = document.getElementById('grid');
-            gridEl.innerHTML = '';
-
-            let maxTile = 0;
-            for (let i = 0; i < 4; i++) {
-                for (let j = 0; j < 4; j++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'cell';
-                    const value = grid[i][j];
+            gridEl.innerHTML = '';    
+            let maxTile = 0;    
+            for (let i = 0; i < 4; i++) {        
+                for (let j = 0; j < 4; j++) {            
+                    const cell = document.createElement('div');            
+                    const value = grid[i][j];            
+                    const prev = lastRenderGrid?.[i]?.[j] ?? 0;
+                    cell.className = 'cell';            
                     if (value !== 0) {
                         cell.textContent = value;
-                        cell.setAttribute('data-value', value.toString());
-                        if (value > maxTile) maxTile = value;
+                        cell.setAttribute('data-value', value.toString());                
+                        if (value > maxTile) maxTile = value;                
+                        if (lastRenderGrid && value !== prev) {
+                            cell.classList.add('tile-pop');                    
+                            setTimeout(() => cell.classList.remove('tile-pop'), 220);
+                        }
                     }
                     gridEl.appendChild(cell);
                 }
             }
-
             document.getElementById('moves').textContent = moves;
             document.getElementById('max-tile').textContent = maxTile;
+            lastRenderGrid = grid.map(row => [...row]);
         }
 
         function getCombineResult(v1, v2, direction) {
@@ -423,6 +517,7 @@
             moves = 0;
             gameOver = false;
             gameWon = false;
+            lastRenderGrid = null;
             document.getElementById('message').className = 'message';
 
             // 初始添加几个数字
