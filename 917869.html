@@ -206,7 +206,8 @@
         </div>
     </div>
 
-    <script>
+  <script>
+        const vanishSet = new Set([1, 6, 7, 8, 9]);
         let grid = [];
         let moves = 0;
         let gameOver = false;
@@ -221,13 +222,13 @@
             for (let i = 0; i < 4; i++) {
                 for (let j = 0; j < 4; j++) {
                     if (grid[i][j] === 0) {
-                        emptyCells.push({r: i, c: j});
+                        emptyCells.push({ r: i, c: j });
                     }
                 }
             }
-            
+
             if (emptyCells.length > 0) {
-                const {r, c} = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                const { r, c } = emptyCells[Math.floor(Math.random() * emptyCells.length)];
                 const values = [6, 7, 8];
                 grid[r][c] = values[Math.floor(Math.random() * values.length)];
             }
@@ -236,7 +237,7 @@
         function renderGrid() {
             const gridEl = document.getElementById('grid');
             gridEl.innerHTML = '';
-            
+
             let maxTile = 0;
             for (let i = 0; i < 4; i++) {
                 for (let j = 0; j < 4; j++) {
@@ -251,7 +252,7 @@
                     gridEl.appendChild(cell);
                 }
             }
-            
+
             document.getElementById('moves').textContent = moves;
             document.getElementById('max-tile').textContent = maxTile;
         }
@@ -259,147 +260,125 @@
         function getCombineResult(v1, v2, direction) {
             // v1 是撞击者，v2 是被撞击者
             if (v1 === 0 || v2 === 0) return null;
-            
-            const vanishSet = new Set([1, 6, 7, 8, 9]);
-            
+
             // 竖向合成 (上下方向)
             if (direction === 'up' || direction === 'down') {
-                if (v1 === 6 && v2 === 7) return 13;  // 6 下滑撞 7
-                if (v1 === 7 && v2 === 6) return 1;   // 7 上滑撞 6
-                if (v1 === 8 && v2 === 7) return 1;   // 8 撞 7
+                if (v1 === 6 && v2 === 7) return 13;   // 6 下滑撞 7
+                if (v1 === 7 && v2 === 6) return 1;    // 7 上滑撞 6
+                if (v1 === 8 && v2 === 7) return 1;    // 8 撞 7
                 if ((v1 === 13 && v2 === 78) || (v1 === 78 && v2 === 13)) return 91;
                 if ((v1 === 91 && v2 === 1) || (v1 === 1 && v2 === 91)) return 9;
             }
-            
+
             // 横向合成 (左右方向)
             if (direction === 'left' || direction === 'right') {
-                if (v1 === 7 && v2 === 8) return 78;  // 7 右滑撞 8 (或 7 在左被右滑推动撞 8)
+                if (v1 === 7 && v2 === 8) return 78;   // 7 左右触发 78
                 if ((v1 === 13 && v2 === 78) || (v1 === 78 && v2 === 13)) return 91;
-                if (v1 === 6 && v2 === 9) return 69;  // 6 右滑撞 9
+                if (v1 === 6 && v2 === 9) return 69;
                 if ((v1 === 91 && v2 === 1) || (v1 === 1 && v2 === 91)) return 9;
             }
-            
-            // 检查是否应该消失 (1,6,7,8,9 之间未定义的碰撞)
+
+            // 未定义组合：1/6/7/8/9 间消失
             if (vanishSet.has(v1) && vanishSet.has(v2)) {
                 return 'vanish';
             }
-            
-            return null; // 无反应
+
+            return null;
         }
 
         function processLine(line, direction) {
-            // line 始终是 [左→右] 或 [上→下] 的顺序
-            // 需要确定谁是撞击者
-            
-            // 移除空格
-            let filtered = line.filter(x => x !== 0);
+            // 为统一逻辑：右/下方向先反转行列，让“向左/向上”统一处理
+            const working = (direction === 'right' || direction === 'down')
+                ? [...line].reverse()
+                : [...line];
+
+            let filtered = working.filter(x => x !== 0);
             if (filtered.length === 0) return [0, 0, 0, 0];
-            
-            let result = [];
+
+            const result = [];
             let i = 0;
-            
+
             while (i < filtered.length) {
                 if (i === filtered.length - 1) {
-                    // 最后一个数字，后面没东西了
                     result.push(filtered[i]);
-                    i++;
-                    continue;
+                    break;
                 }
-                
-                // 确定撞击者和被撞击者
-                let collider, target;
-                
-                if (direction === 'left' || direction === 'up') {
-                    // 左滑/上滑：索引大的撞索引小的 (右边的撞左边的，下面的撞上面的)
-                    // filtered[i] 是目标 (左/上)，filtered[i+1] 是撞击者 (右/下)
-                    target = filtered[i];
-                    collider = filtered[i + 1];
-                } else {
-                    // 右滑/下滑：索引小的撞索引大的 (左边的撞右边的，上面的撞下面的)
-                    // filtered[i] 是撞击者 (左/上)，filtered[i+1] 是目标 (右/下)
-                    collider = filtered[i];
-                    target = filtered[i + 1];
-                }
-                
+
+                // 在统一方向里：右侧/下方的当作撞击者
+                const target = filtered[i];
+                const collider = filtered[i + 1];
                 const res = getCombineResult(collider, target, direction);
-                
+
                 if (res === 'vanish') {
-                    // 两者都消失，跳过这两个
                     i += 2;
                 } else if (res !== null) {
-                    // 合成
                     result.push(res);
                     i += 2;
                 } else {
-                    // 无反应：撞击者停在目标旁边
-                    // 先把目标放入结果
                     result.push(target);
-                    i++; // 下一轮处理原来的撞击者作为新的目标或撞击者
+                    i++;
                 }
             }
-            
-            // 填充空格到末尾
+
             while (result.length < 4) {
                 result.push(0);
             }
-            
-            return result;
+
+            return (direction === 'right' || direction === 'down')
+                ? result.reverse()
+                : result;
         }
 
-        function move(direction) {
-            if (gameOver || gameWon) return;
-            
+        function arraysEqual(a, b) {
+            for (let i = 0; i < a.length; i++) {
+                if (a[i] !== b[i]) return false;
+            }
+            return true;
+        }
+
+        function simulateMove(sourceGrid, direction) {
+            const newGrid = sourceGrid.map(row => [...row]);
             let changed = false;
-            let newGrid = grid.map(row => [...row]);
-            
+
             if (direction === 'left' || direction === 'right') {
                 for (let i = 0; i < 4; i++) {
-                    let line = [...newGrid[i]];
-                    if (direction === 'right') {
-                        line.reverse();
-                    }
+                    const line = [...newGrid[i]];
                     const processed = processLine(line, direction);
-                    if (direction === 'right') {
-                        processed.reverse();
-                    }
-                    if (JSON.stringify(newGrid[i]) !== JSON.stringify(processed)) {
-                        changed = true;
-                    }
+                    if (!arraysEqual(line, processed)) changed = true;
                     newGrid[i] = processed;
                 }
             } else {
                 for (let j = 0; j < 4; j++) {
-                    let line = [newGrid[0][j], newGrid[1][j], newGrid[2][j], newGrid[3][j]];
-                    if (direction === 'down') {
-                        line.reverse();
-                    }
+                    const line = [newGrid[0][j], newGrid[1][j], newGrid[2][j], newGrid[3][j]];
                     const processed = processLine(line, direction);
-                    if (direction === 'down') {
-                        processed.reverse();
-                    }
                     for (let i = 0; i < 4; i++) {
-                        if (newGrid[i][j] !== processed[i]) {
-                            changed = true;
-                        }
+                        if (newGrid[i][j] !== processed[i]) changed = true;
                         newGrid[i][j] = processed[i];
                     }
                 }
             }
-            
-            if (changed) {
-                grid = newGrid;
-                moves++;
-                addRandomTile();
-                renderGrid();
-                checkWin();
-                checkGameOver();
-            }
+
+            return { newGrid, changed };
+        }
+
+        function move(direction) {
+            if (gameOver || gameWon) return;
+
+            const { newGrid, changed } = simulateMove(grid, direction);
+            if (!changed) return;
+
+            grid = newGrid;
+            moves++;
+            addRandomTile();
+            renderGrid();
+            checkWin();
+            checkGameOver();
         }
 
         function checkWin() {
             for (let i = 0; i < 4; i++) {
                 for (let j = 0; j <= 1; j++) {
-                    if (grid[i][j] === 91 && grid[i][j+1] === 78 && grid[i][j+2] === 69) {
+                    if (grid[i][j] === 91 && grid[i][j + 1] === 78 && grid[i][j + 2] === 69) {
                         gameWon = true;
                         showMessage('🎉 恭喜获胜！目标达成：[91, 78, 69]', 'success');
                         return;
@@ -408,31 +387,27 @@
             }
         }
 
+        function canMoveDirection(direction) {
+            const { changed } = simulateMove(grid, direction);
+            return changed;
+        }
+
         function checkGameOver() {
-            // 检查是否有空格
+            // 有空格直接不是结束
             for (let i = 0; i < 4; i++) {
                 for (let j = 0; j < 4; j++) {
                     if (grid[i][j] === 0) return;
                 }
             }
-            
-            // 检查是否还能移动或合成
-            for (let i = 0; i < 4; i++) {
-                for (let j = 0; j < 4; j++) {
-                    const current = grid[i][j];
-                    // 检查右边
-                    if (j < 3) {
-                        const right = grid[i][j+1];
-                        if (getCombineResult(current, right, 'right') !== null) return;
-                    }
-                    // 检查下边
-                    if (i < 3) {
-                        const down = grid[i+1][j];
-                        if (getCombineResult(current, down, 'down') !== null) return;
-                    }
-                }
+
+            // 只有能在任一方向产生变化才不算结束
+            if (canMoveDirection('left') ||
+                canMoveDirection('right') ||
+                canMoveDirection('up') ||
+                canMoveDirection('down')) {
+                return;
             }
-            
+
             gameOver = true;
             showMessage('💀 游戏结束！无法继续移动', 'info');
         }
@@ -449,27 +424,40 @@
             gameOver = false;
             gameWon = false;
             document.getElementById('message').className = 'message';
-            
+
             // 初始添加几个数字
             addRandomTile();
             addRandomTile();
             addRandomTile();
-            
+
             renderGrid();
         }
 
         // 键盘控制
         document.addEventListener('keydown', (e) => {
-            switch(e.key) {
-                case 'ArrowUp': move('up'); break;
-                case 'ArrowDown': move('down'); break;
-                case 'ArrowLeft': move('left'); break;
-                case 'ArrowRight': move('right'); break;
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                e.preventDefault();
+            }
+
+            switch (e.key) {
+                case 'ArrowUp':
+                    move('up');
+                    break;
+                case 'ArrowDown':
+                    move('down');
+                    break;
+                case 'ArrowLeft':
+                    move('left');
+                    break;
+                case 'ArrowRight':
+                    move('right');
+                    break;
             }
         });
 
         // 启动游戏
         newGame();
     </script>
+
 </body>
 </html>
