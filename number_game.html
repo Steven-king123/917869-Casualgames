@@ -256,29 +256,31 @@
             document.getElementById('max-tile').textContent = maxTile;
         }
 
-        function getCombineResult(a, b, direction) {
-            if (a === 0 || b === 0) return null;
+        function getCombineResult(v1, v2, direction) {
+            // v1 是撞击者，v2 是被撞击者
+            if (v1 === 0 || v2 === 0) return null;
+            
+            const vanishSet = new Set([1, 6, 7, 8, 9]);
             
             // 竖向合成 (上下方向)
             if (direction === 'up' || direction === 'down') {
-                if (a === 6 && b === 7) return 13;
-                if (a === 7 && b === 6) return 1;
-                if (a === 8 && b === 7) return 1;
-                if ((a === 13 && b === 78) || (a === 78 && b === 13)) return 91;
-                if ((a === 91 && b === 1) || (a === 1 && b === 91)) return 9;
+                if (v1 === 6 && v2 === 7) return 13;  // 6 下滑撞 7
+                if (v1 === 7 && v2 === 6) return 1;   // 7 上滑撞 6
+                if (v1 === 8 && v2 === 7) return 1;   // 8 撞 7
+                if ((v1 === 13 && v2 === 78) || (v1 === 78 && v2 === 13)) return 91;
+                if ((v1 === 91 && v2 === 1) || (v1 === 1 && v2 === 91)) return 9;
             }
             
             // 横向合成 (左右方向)
             if (direction === 'left' || direction === 'right') {
-                if (a === 7 && b === 8) return 78;
-                if ((a === 13 && b === 78) || (a === 78 && b === 13)) return 91;
-                if (a === 6 && b === 9) return 69;
-                if ((a === 91 && b === 1) || (a === 1 && b === 91)) return 9;
+                if (v1 === 7 && v2 === 8) return 78;  // 7 右滑撞 8 (或 7 在左被右滑推动撞 8)
+                if ((v1 === 13 && v2 === 78) || (v1 === 78 && v2 === 13)) return 91;
+                if (v1 === 6 && v2 === 9) return 69;  // 6 右滑撞 9
+                if ((v1 === 91 && v2 === 1) || (v1 === 1 && v2 === 91)) return 9;
             }
             
             // 检查是否应该消失 (1,6,7,8,9 之间未定义的碰撞)
-            const vanishSet = new Set([1, 6, 7, 8, 9]);
-            if (vanishSet.has(a) && vanishSet.has(b)) {
+            if (vanishSet.has(v1) && vanishSet.has(v2)) {
                 return 'vanish';
             }
             
@@ -286,35 +288,54 @@
         }
 
         function processLine(line, direction) {
+            // line 始终是 [左→右] 或 [上→下] 的顺序
+            // 需要确定谁是撞击者
+            
             // 移除空格
             let filtered = line.filter(x => x !== 0);
-            let result = [];
-            let skip = false;
+            if (filtered.length === 0) return [0, 0, 0, 0];
             
-            for (let i = 0; i < filtered.length; i++) {
-                if (skip) {
-                    skip = false;
+            let result = [];
+            let i = 0;
+            
+            while (i < filtered.length) {
+                if (i === filtered.length - 1) {
+                    // 最后一个数字，后面没东西了
+                    result.push(filtered[i]);
+                    i++;
                     continue;
                 }
                 
-                if (i + 1 < filtered.length) {
-                    const a = filtered[i];
-                    const b = filtered[i + 1];
-                    const res = getCombineResult(a, b, direction);
-                    
-                    if (res === 'vanish') {
-                        // 两者都消失
-                        skip = true;
-                        continue;
-                    } else if (res !== null) {
-                        // 合成
-                        result.push(res);
-                        skip = true;
-                        continue;
-                    }
+                // 确定撞击者和被撞击者
+                let collider, target;
+                
+                if (direction === 'left' || direction === 'up') {
+                    // 左滑/上滑：索引大的撞索引小的 (右边的撞左边的，下面的撞上面的)
+                    // filtered[i] 是目标 (左/上)，filtered[i+1] 是撞击者 (右/下)
+                    target = filtered[i];
+                    collider = filtered[i + 1];
+                } else {
+                    // 右滑/下滑：索引小的撞索引大的 (左边的撞右边的，上面的撞下面的)
+                    // filtered[i] 是撞击者 (左/上)，filtered[i+1] 是目标 (右/下)
+                    collider = filtered[i];
+                    target = filtered[i + 1];
                 }
                 
-                result.push(filtered[i]);
+                const res = getCombineResult(collider, target, direction);
+                
+                if (res === 'vanish') {
+                    // 两者都消失，跳过这两个
+                    i += 2;
+                } else if (res !== null) {
+                    // 合成
+                    result.push(res);
+                    i += 2;
+                } else {
+                    // 无反应：撞击者停在目标旁边
+                    // 先把目标放入结果
+                    result.push(target);
+                    i++; // 下一轮处理原来的撞击者作为新的目标或撞击者
+                }
             }
             
             // 填充空格到末尾
