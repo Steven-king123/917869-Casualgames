@@ -435,21 +435,25 @@
 
         // 键盘控制
         document.addEventListener('keydown', (e) => {
-            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight','KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.key)) {
                 e.preventDefault();
             }
 
             switch (e.key) {
                 case 'ArrowUp':
+                case 'KeyW':
                     move('up');
                     break;
                 case 'ArrowDown':
+                case 'KeyS':
                     move('down');
                     break;
                 case 'ArrowLeft':
+                case 'KeyA':
                     move('left');
                     break;
                 case 'ArrowRight':
+                case 'KeyD':
                     move('right');
                     break;
             }
