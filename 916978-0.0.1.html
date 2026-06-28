@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>数字合成游戏（规则表驱动版）</title>
+  <style>
+    :root {
+      --bg1: #0f1021;
+      --bg2: #1b1f4a;
+      --bg3: #2b0f45;
+      --glass: rgba(255, 255, 255, 0.1);
+      --glass-stroke: rgba(255, 255, 255, 0.28);
+      --text-main: #f5f7ff;
+      --text-sub: #b6bee0;
+      --mx: 50%;
+      --my: 50%;
+      --mouse-intensity: 0;
+      --mx-slow-x: 50%;
+      --mx-slow-y: 50%;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      height:auto;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    body {
+      font-family: "Inter", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      min-height: 120vh;
+      overflow: visible;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 22px;
+      background:
+        radial-gradient(circle at 15% 20%, #2a1a78 0%, transparent 32%),
+        radial-gradient(circle at 85% 10%, #1f5dbe 0%, transparent 30%),
+        radial-gradient(circle at 50% 100%, #4f1d6f 0%, transparent 34%),
+        linear-gradient(135deg, var(--bg1), var(--bg2), var(--bg3));
+      color: var(--text-main);
+      position: relative;
+      isolation: isolate;
+    }
+
+    #glow-orbs {
+      position: fixed;
+      inset: -20%;
+      pointer-events: none;
+      z-index: -1;
+      filter: saturate(1.2);
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(140px);
+      opacity: 0.38;
+      mix-blend-mode: screen;
+    }
+
+    .orb-1 {
+      width: 520px;
+      height: 520px;
+      left: -8%;
+      top: -15%;
+      background: radial-gradient(circle, rgba(132, 78, 247, 0.95), rgba(132, 78, 247, 0) 68%);
+      animation: blob1 26s ease-in-out infinite;
+    }
+
+    .orb-2 {
+      width: 460px;
+      height: 460px;
+      right: -12%;
+      top: 2%;
+      background: radial-gradient(circle, rgba(75, 168, 255, 0.95), rgba(75, 168, 255, 0) 70%);
+      animation: blob2 32s ease-in-out infinite;
+    }
+
+    .orb-3 {
+      width: 500px;
+      height: 500px;
+      left: 16%;
+      bottom: -22%;
+      background: radial-gradient(circle, rgba(255, 84, 200, 0.95), rgba(255, 84, 200, 0) 68%);
+      animation: blob3 28s ease-in-out infinite;
+    }
+
+    .orb-4 {
+      width: 430px;
+      height: 430px;
+      right: 8%;
+      bottom: 0%;
+      background: radial-gradient(circle, rgba(84, 228, 255, 0.95), rgba(84, 228, 255, 0) 67%);
+      animation: blob4 30s ease-in-out infinite;
+    }
+
+    @keyframes blob1 {
+      0% { transform: translate(-5%, 5%) scale(0.97); }
+      35% { transform: translate(4%, -8%) scale(1.08); }
+      70% { transform: translate(-7%, 2%) scale(1.02); }
+      100% { transform: translate(-5%, 5%) scale(0.97); }
+    }
+    @keyframes blob2 {
+      0% { transform: translate(7%, -7%) scale(1.02); }
+      40% { transform: translate(-4%, 8%) scale(0.96); }
+      75% { transform: translate(8%, 4%) scale(1.08); }
+      100% { transform: translate(7%, -7%) scale(1.02); }
+    }
+    @keyframes blob3 {
+      0% { transform: translate(3%, 6%) scale(1); }
+      45% { transform: translate(-8%, -5%) scale(1.1); }
+      85% { transform: translate(6%, 10%) scale(0.98); }
+      100% { transform: translate(3%, 6%) scale(1); }
+    }
+    @keyframes blob4 {
+      0% { transform: translate(-7%, 2%) scale(1); }
+      33% { transform: translate(6%, -4%) scale(1.09); }
+      66% { transform: translate(10%, 8%) scale(1); }
+      100% { transform: translate(-7%, 2%) scale(1); }
+    }
+
+    .ambient-particles {
+      position: fixed;
+      inset: -20%;
+      z-index: 1;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .particle {
+      position: absolute;
+      border-radius: 50%;
+      background: var(--particle-color, rgba(255, 255, 255, 0.12));
+      width: var(--size);
+      height: var(--size);
+      left: var(--left);
+      top: var(--top);
+      animation: particleDrift var(--duration) linear infinite;
+      animation-delay: var(--delay);
+      opacity: 0;
+      mix-blend-mode: screen;
+    }
+
+    @keyframes particleDrift {
+      0% {
+        transform: translate(0, 0) scale(0.35);
+        opacity: 0;
+      }
+      10% { opacity: var(--alpha); }
+      90% { opacity: var(--alpha); }
+      100% {
+        transform: translate(var(--dx), var(--dy)) scale(1);
+        opacity: 0;
+      }
+    }
+
+    .game-container {
+      width: min(520px, 92vw);
+      position: relative;
+      border-radius: 24px;
+      padding: 24px;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.02));
+      border: 1px solid var(--glass-stroke);
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      overflow: hidden;
+      z-index: 2;
+    }
+
+    .mouse-ambient {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      z-index: 1;
+      opacity: calc(var(--mouse-intensity) * 0.8);
+      background: radial-gradient(circle at var(--mx-slow-x) var(--mx-slow-y), rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04) 24%, rgba(255, 255, 255, 0) 54%);
+      mix-blend-mode: screen;
+      transition: opacity .3s linear;
+    }
+
+    .reflection-sheen {
+      position: absolute;
+      inset: -24%;
+      z-index: 2;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateX(-120%);
+      background: linear-gradient(110deg, rgba(255, 255, 255, 0) 49%, rgba(255, 255, 255, 0.1) 54%, rgba(255, 255, 255, 0) 58%);
+      mix-blend-mode: screen;
+      animation: reflectionSweep 9.5s ease-in-out infinite;
+    }
+
+    @keyframes reflectionSweep {
+      0%, 25% { transform: translateX(-130%); opacity: 0; }
+      38% { opacity: .08; }
+      55% { transform: translateX(150%); opacity: 0; }
+      100% { transform: translateX(150%); opacity: 0; }
+    }
+
+    .border-flow {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      border-radius: 24px;
+      pointer-events: none;
+      padding: 2.5px;
+      background: linear-gradient(130deg, #4f7dff, #9c56ff, #32d8ff, #4f7dff);
+      background-size: 360% 360%;
+      animation: borderFlow 20s linear infinite;
+      opacity: .75;
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask-composite: exclude;
+      -webkit-mask-composite: xor;
+      mix-blend-mode: screen;
+    }
+
+    @keyframes borderFlow {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
+    }
+
+    .victory-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 4;
+      border-radius: 24px;
+      opacity: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(255, 213, 122, 0.45), rgba(255, 174, 78, 0.18) 45%, transparent 72%);
+      mix-blend-mode: screen;
+    }
+
+    .game-container.victoryPulse {
+      animation: victoryPulse 2s ease-out forwards;
+    }
+
+    .victory-layer.active {
+      animation: victoryAura 2s ease-out forwards;
+    }
+
+    @keyframes victoryPulse {
+      0% { box-shadow: 0 30px 80px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .2), 0 0 20px rgba(255, 204, 120, 0.12); }
+      40% { box-shadow: 0 30px 80px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .2), 0 0 80px rgba(255, 204, 120, 0.58); }
+      100% { box-shadow: 0 30px 80px rgba(0, 0, 0, .45), inset 0 1px 0 rgba(255, 255, 255, .2), 0 0 20px rgba(255, 204, 120, 0.22); }
+    }
+
+    @keyframes victoryAura {
+      0% { opacity: 0; }
+      30% { opacity: .95; }
+      100% { opacity: 0; }
+    }
+
+    .game-container > *:not(.mouse-ambient):not(.reflection-sheen):not(.border-flow):not(.victory-layer) {
+      position: relative;
+      z-index: 7;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 6px;
+      font-size: clamp(1.35rem, 4vw, 2rem);
+      letter-spacing: 1px;
+      background: linear-gradient(90deg, #f9d423, #ff4e50, #24c6dc);
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .score-board {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .score-item {
+      background: var(--glass);
+      border: 1px solid var(--glass-stroke);
+      border-radius: 14px;
+      text-align: center;
+      padding: 12px 8px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    }
+
+    .score-label {
+      color: var(--text-sub);
+      font-size: 12px;
+    }
+
+    .score-value {
+      margin-top: 4px;
+      color: var(--text-main);
+      font-size: clamp(1.3rem, 3vw, 1.7rem);
+      font-weight: 800;
+      letter-spacing: 1px;
+      text-shadow: 0 2px 10px rgba(255, 255, 255, 0.25);
+    }
+
+    .message {
+      text-align: center;
+      padding: 12px 14px;
+      margin-bottom: 14px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 14px;
+      display: none;
+    }
+
+    .message.success {
+      background: rgba(54, 209, 220, 0.16);
+      color: #7fffd4;
+      border: 1px solid rgba(54, 209, 220, 0.45);
+      display: block;
+    }
+
+    .message.info {
+      background: rgba(173, 216, 255, 0.16);
+      color: #a8d8ff;
+      border: 1px solid rgba(168, 216, 255, 0.35);
+      display: block;
+    }
+
+    .grid {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      background: rgba(0, 0, 0, 0.22);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 14px;
+      border-radius: 16px;
+      margin-bottom: 14px;
+      box-shadow: inset 0 0 18px rgba(255, 255, 255, 0.08);
+      user-select: none;
+      touch-action: none;
+      overscroll-behavior: contain;
+      overflow: hidden;
+      z-index: 10;
+    }
+
+    .cell {
+      aspect-ratio: 1 / 1;
+      position: relative;
+      z-index: 1;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    }
+
+    .tile-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    .flash-layer {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 22;
+    }
+
+    .tile {
+      --trail-alpha: 0;
+      --trail-scale: 0;
+      --trail-rotate: 0deg;
+      position: absolute;
+      left: 0;
+      top: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: 800;
+      border-radius: 10px;
+      color: #fff;
+      will-change: transform, opacity;
+      backface-visibility: hidden;
+      transform-style: preserve-3d;
+      pointer-events: none;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      z-index: 2;
+      border: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .tile::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 58% 0;
+      border-radius: 10px 10px 2px 2px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0) 78%);
+      opacity: 1;
+      mix-blend-mode: screen;
+      pointer-events: none;
+    }
+
+    .tile::after {
+      content: "";
+      position: absolute;
+      inset: 5px 6px;
+      border-radius: 8px;
+      pointer-events: none;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.44), rgba(255, 255, 255, 0));
+      opacity: var(--trail-alpha);
+      transform-origin: left center;
+      transform: rotate(var(--trail-rotate)) scaleX(var(--trail-scale));
+      filter: blur(6px);
+    }
+
+    .tile[data-value="6"] { background: linear-gradient(135deg, #38bdf8, #0ea5e9); box-shadow: 0 0 12px rgba(14, 165, 233, 0.45); }
+    .tile[data-value="7"] { background: linear-gradient(135deg, #4ade80, #16a34a); box-shadow: 0 0 12px rgba(22, 163, 74, 0.35); }
+    .tile[data-value="8"] { background: linear-gradient(135deg, #f472b6, #db2777); box-shadow: 0 0 12px rgba(219, 39, 119, 0.35); }
+    .tile[data-value="1"] { background: linear-gradient(135deg, #c084fc, #8b5cf6); box-shadow: 0 0 12px rgba(139, 92, 246, 0.45); }
+    .tile[data-value="13"] { background: linear-gradient(135deg, #fb923c, #f97316); box-shadow: 0 0 12px rgba(249, 115, 22, 0.4); }
+    .tile[data-value="78"] { background: linear-gradient(135deg, #67e8f9, #06b6d4); color: #0b1020; box-shadow: 0 0 12px rgba(6, 182, 212, 0.4); }
+    .tile[data-value="91"] { background: linear-gradient(135deg, #fde047, #f59e0b); color: #3b2f00; box-shadow: 0 0 12px rgba(245, 158, 11, 0.45); }
+    .tile[data-value="69"] { background: linear-gradient(135deg, #34d399, #10b981); box-shadow: 0 0 12px rgba(16, 185, 129, 0.45); }
+    .tile[data-value="9"]  { background: linear-gradient(135deg, #f87171, #dc2626); box-shadow: 0 0 12px rgba(220, 38, 38, 0.4); }
+
+    .tile[data-value="91"],
+    .tile[data-value="78"],
+    .tile[data-value="69"] {
+      animation: premiumPulse 2.5s ease-in-out infinite;
+    }
+
+    @keyframes premiumPulse {
+      0%, 100% { box-shadow: 0 0 16px rgba(255, 255, 255, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+      50% { box-shadow: 0 0 36px rgba(255, 255, 255, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.25); }
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      max-width: 280px;
+      margin: 0 auto 14px;
+    }
+
+    .btn {
+      width: 100%;
+      height: 50px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      color: #fff;
+      font-size: 21px;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+      transition: transform 0.12s ease, filter 0.2s ease;
+    }
+
+    .btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+    .btn:active { transform: translateY(1px) scale(0.98); }
+
+    .rules {
+      margin-top: 12px;
+      padding: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.06);
+      color: #d6ddff;
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .rules h3 { color: #ffffff; margin-bottom: 6px; }
+
+    .impact-flash {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%) scale(0.22);
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.55) 35%, rgba(255, 255, 255, 0) 72%);
+      mix-blend-mode: screen;
+      opacity: 0;
+      animation: impactFlash 320ms ease-out forwards;
+      z-index: 30;
+    }
+
+    .spawn-glow {
+      position: absolute;
+      width: var(--glow-size);
+      height: var(--glow-size);
+      border-radius: 50%;
+      pointer-events: none;
+      transform: translate(-50%, -50%) scale(0.18);
+      background: radial-gradient(circle, var(--glow-color), rgba(255, 255, 255, 0) 72%);
+      mix-blend-mode: screen;
+      opacity: 0;
+      filter: blur(0.4px);
+      z-index: 31;
+      animation: spawnGlow 900ms ease-out forwards;
+    }
+
+    @keyframes impactFlash {
+      0% { transform: translate(-50%, -50%) scale(0.22); opacity: 0; }
+      30% { transform: translate(-50%, -50%) scale(0.95); opacity: 1; }
+      100% { transform: translate(-50%, -50%) scale(1.95); opacity: 0; }
+    }
+
+    @keyframes spawnGlow {
+      0% { transform: translate(-50%, -50%) scale(0.18); opacity: 0; box-shadow: 0 0 0 0 var(--glow-color); }
+      30% { opacity: 0.85; }
+      100% { transform: translate(-50%, -50%) scale(1.55); opacity: 0; box-shadow: 0 0 0 24px transparent; }
+    }
+
+    @media (max-width: 480px) {
+      .game-container { padding: 16px; border-radius: 18px; }
+      .score-value { font-size: 1.2rem; }
+    }
+  </style>
+</head>
+<body>
+  <div id="glow-orbs" aria-hidden="true">
+    <span class="orb orb-1"></span>
+    <span class="orb orb-2"></span>
+    <span class="orb orb-3"></span>
+    <span class="orb orb-4"></span>
+    <div id="ambientParticles" class="ambient-particles"></div>
+  </div>
+
+  <div class="game-container" id="gameContainer">
+    <div class="mouse-ambient" id="mouseAmbient"></div>
+    <div class="reflection-sheen" id="reflectionSheen"></div>
+    <div class="border-flow" id="borderFlow"></div>
+    <div class="victory-layer" id="victoryLayer"></div>
+
+    <h1>🎮 数字合成游戏</h1>
+
+    <div class="score-board">
+      <div class="score-item">
+        <div class="score-label">步数</div>
+        <div class="score-value" id="moves">0</div>
+      </div>
+      <div class="score-item">
+        <div class="score-label">最高数字</div>
+        <div class="score-value" id="maxTile">0</div>
+      </div>
+    </div>
+
+    <div id="message" class="message"></div>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="controls">
+      <button class="btn" onclick="newGame()">新游戏</button>
+    </div>
+
+    <div class="rules">
+      <h3>📜 游戏规则</h3>
+      <p><strong>生成:</strong> 随机生成 6, 7, 8</p>
+      <p><strong>横向合成:</strong> 8→7=78, 13↔78=91, 6↔9=69, 91↔1=9</p>
+      <p><strong>竖向合成:</strong> 7→6=13, 6→7=1, 7→8=1, 13↔78=91, 91↔1=9</p>
+      <p><strong>消失:</strong> 1,6,7,8,9 间未定义组合碰撞消失</p>
+      <p><strong>胜利:</strong> 横向排列 [91, 78, 69]</p>
+    </div>
+  </div>
+
+  <script>
+    const GRID_SIZE = 4;
+    const SWIPE_THRESHOLD = 24;
+
+    // 新增：触控长按滚动判定参数
+    const LONG_PRESS_SCROLL_DELAY = 240; // 长按时间阈值(ms)
+    const TOUCH_AXIS_THRESHOLD = 8;      // 方向判定位移
+    const TOUCH_AXIS_RATIO = 1.2;        // 水平/垂直分离比例
+
+    const MOVE_DURATION = 220;
+    const IMPACT_DELAY = 100;
+    const MERGE_DURATION = 180;
+    const SPAWN_DURATION = 170;
+    const TRAIL_DURATION = 120;
+    const VICTORY_DURATION = 2000;
+
+    const VANISH_VALUES = new Set([1, 6, 7, 8, 9]);
+
+    const RULES = [
+      // horizontal（已反向）
+      { direction: "horizontal", from: [8, 7], result: { type: "merge", value: 78 } },
+      { direction: "horizontal", from: [78, 13], result: { type: "merge", value: 91 } },
+      { direction: "horizontal", from: [13, 78], result: { type: "merge", value: 91 } },
+      { direction: "horizontal", from: [9, 6], result: { type: "merge", value: 69 } },
+      { direction: "horizontal", from: [6, 9], result: { type: "merge", value: 69 } },
+      { direction: "horizontal", from: [1, 91], result: { type: "merge", value: 9 } },
+      { direction: "horizontal", from: [91, 1], result: { type: "merge", value: 9 } },
+
+      // vertical（已反向）
+      { direction: "vertical", from: [7, 6], result: { type: "merge", value: 13 } },
+      { direction: "vertical", from: [6, 7], result: { type: "merge", value: 1 } },
+      { direction: "vertical", from: [7, 8], result: { type: "merge", value: 1 } },
+      { direction: "vertical", from: [78, 13], result: { type: "merge", value: 91 } },
+      { direction: "vertical", from: [13, 78], result: { type: "merge", value: 91 } },
+      { direction: "vertical", from: [91, 1], result: { type: "merge", value: 9 } },
+      { direction: "vertical", from: [1, 91], result: { type: "merge", value: 9 } }
+    ];
+
+    const RULE_INDEX = {
+      horizontal: new Map(),
+      vertical: new Map()
+    };
+
+    for (const rule of RULES) {
+      RULE_INDEX[rule.direction].set(`${rule.from[0]},${rule.from[1]}`, rule.result);
+    }
+
+    const WIN_PATTERN = [91, 78, 69];
+
+    let board = [];
+    let moves = 0;
+    let gameOver = false;
+    let gameWon = false;
+    let isAnimating = false;
+    let tileIdSeq = 1;
+
+    const tiles = new Map();
+    const tilePool = [];
+    let cellRects = [];
+
+    const gridEl = document.getElementById('grid');
+    const gameContainer = document.getElementById('gameContainer');
+    const msgEl = document.getElementById('message');
+    const movesEl = document.getElementById('moves');
+    const maxTileEl = document.getElementById('maxTile');
+    const mouseAmbient = document.getElementById('mouseAmbient');
+    const ambientParticles = document.getElementById('ambientParticles');
+    const victoryLayer = document.getElementById('victoryLayer');
+
+    let tileLayer;
+    let flashLayer;
+
+    // 触控状态变量
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchLastY = 0;
+    let touchStartTime = 0;
+    let touchAxis = 'undecided'; // 'horizontal' | 'vertical' | 'undecided'
+    let isScrollMode = false;
+    let touchActive = false;
+
+    function easeOutCubic(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function waitAnimation(ms) {
+      return new Promise((resolve) => {
+        const start = performance.now();
+        const tick = (now) => {
+          if (now - start >= ms) {
+            resolve();
+          } else {
+            requestAnimationFrame(tick);
+          }
+        };
+        requestAnimationFrame(tick);
+      });
+    }
+
+    function runTween(duration, onFrame) {
+      return new Promise((resolve) => {
+        const start = performance.now();
+        const frame = (now) => {
+          const t = Math.min(1, (now - start) / duration);
+          onFrame(t);
+          if (t < 1) requestAnimationFrame(frame);
+          else resolve();
+        };
+        requestAnimationFrame(frame);
+      });
+    }
+
+    function tileRect(r, c) {
+      return cellRects[r * GRID_SIZE + c];
+    }
+
+    function axisOf(direction) {
+      return direction === 'left' || direction === 'right' ? 'horizontal' : 'vertical';
+    }
+
+    function getMergeResult(v1, v2, direction) {
+      if (!v1 || !v2) return null;
+      return RULE_INDEX[axisOf(direction)].get(`${v1},${v2}`) || null;
+    }
+
+    function shouldVanish(v1, v2, direction) {
+      if (getMergeResult(v1, v2, direction)) return false;
+      return VANISH_VALUES.has(v1) && VANISH_VALUES.has(v2);
+    }
+
+    function resolveCollision(v1, v2, direction) {
+      const merge = getMergeResult(v1, v2, direction);
+      if (merge) return { type: "merge", value: merge.value };
+      if (shouldVanish(v1, v2, direction)) return { type: "vanish" };
+      return { type: "block" };
+    }
+
+    function initGridVisual() {
+      if (gridEl.dataset.ready === '1') return;
+
+      for (let i = 0; i < GRID_SIZE * GRID_SIZE; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        gridEl.appendChild(cell);
+      }
+
+      tileLayer = document.createElement('div');
+      tileLayer.className = 'tile-layer';
+      flashLayer = document.createElement('div');
+      flashLayer.className = 'flash-layer';
+      gridEl.appendChild(tileLayer);
+      gridEl.appendChild(flashLayer);
+
+      gridEl.dataset.ready = '1';
+      measureCellRects();
+    }
+
+    function initBoard() {
+      board = Array.from({ length: GRID_SIZE }, () => Array.from({ length: GRID_SIZE }, () => 0));
+      tileIdSeq = 1;
+      for (const tile of tiles.values()) releaseTileElement(tile.el);
+      tiles.clear();
+    }
+
+    function measureCellRects() {
+      const cells = Array.from(gridEl.querySelectorAll('.cell'));
+      const oldRects = cellRects.map((r) => ({ ...r }));
+      const gridRect = gridEl.getBoundingClientRect();
+
+      cellRects = cells.map((cell) => {
+        const rect = cell.getBoundingClientRect();
+        return {
+          left: rect.left - gridRect.left,
+          top: rect.top - gridRect.top,
+          width: rect.width,
+          height: rect.height
+        };
+      });
+
+      for (const tile of tiles.values()) {
+        const current = tileRect(tile.row, tile.col);
+        if (!current) continue;
+
+        if (oldRects.length) {
+          const prev = oldRects[tile.row * GRID_SIZE + tile.col];
+          if (prev) {
+            tile.x += current.left - prev.left;
+            tile.y += current.top - prev.top;
+          } else {
+            tile.x = current.left;
+            tile.y = current.top;
+          }
+        } else {
+          tile.x = current.left;
+          tile.y = current.top;
+        }
+
+        tile.width = current.width;
+        tile.height = current.height;
+        tile.fontSize = Math.max(16, Math.floor(current.width * 0.45));
+        renderTile(tile);
+      }
+    }
+
+    function initParticles() {
+      const colors = [
+        'rgba(120, 170, 255, ',
+        'rgba(178, 126, 255, ',
+        'rgba(84, 228, 255, '
+      ];
+
+      for (let i = 0; i < 28; i++) {
+        const p = document.createElement('span');
+        const dx = `${(Math.random() * 200 - 100).toFixed(2)}px`;
+        const dy = `${(Math.random() * 200 - 100).toFixed(2)}px`;
+        const size = `${(8 + Math.random() * 10).toFixed(2)}px`;
+        const alpha = (Math.random() * 0.14 + 0.08).toFixed(3);
+        const dur = (14 + Math.random() * 18).toFixed(2);
+        const delay = (-Math.random() * Number(dur)).toFixed(2);
+        const color = `${colors[Math.floor(Math.random() * colors.length)]}${alpha})`;
+
+        p.className = 'particle';
+        p.style.setProperty('--dx', dx);
+        p.style.setProperty('--dy', dy);
+        p.style.setProperty('--size', size);
+        p.style.setProperty('--alpha', alpha);
+        p.style.setProperty('--duration', `${dur}s`);
+        p.style.setProperty('--delay', `${delay}s`);
+        p.style.setProperty('--particle-color', color);
+        p.style.left = `${(Math.random() * 100).toFixed(2)}%`;
+        p.style.top = `${(Math.random() * 100).toFixed(2)}%`;
+        ambientParticles.appendChild(p);
+      }
+    }
+
+    function acquireTileElement() {
+      const el = tilePool.pop() || document.createElement('div');
+      if (!tileLayer.contains(el)) tileLayer.appendChild(el);
+      el.className = 'tile';
+      el.style.display = 'flex';
+      el.style.opacity = '1';
+      el.style.setProperty('--trail-alpha', '0');
+      el.style.setProperty('--trail-scale', '0');
+      el.style.setProperty('--trail-rotate', '0deg');
+      return el;
+    }
+
+    function releaseTileElement(el) {
+      el.style.display = 'none';
+      el.style.opacity = '0';
+      el.style.transform = 'none';
+      tilePool.push(el);
+    }
+
+    function syncTileVisualGeometry(tile) {
+      if (tile.width !== undefined) {
+        tile.el.style.width = `${tile.width}px`;
+        tile.el.style.height = `${tile.height}px`;
+        tile.el.style.fontSize = `${tile.fontSize}px`;
+      }
+    }
+
+    function renderTile(tile) {
+      if (!tile || !tile.active) return;
+
+      tile.el.style.transform = `translate3d(${tile.x}px, ${tile.y}px, 0) scale(${tile.scale}) rotate(${tile.rotation}deg)`;
+      tile.el.style.opacity = String(tile.opacity);
+
+      tile.el.style.setProperty('--trail-alpha', String(tile.trailAlpha ?? 0));
+      tile.el.style.setProperty('--trail-scale', String(tile.trailScale ?? 0));
+      tile.el.style.setProperty('--trail-rotate', `${tile.trailRotate ?? 0}deg`);
+      tile.el.style.zIndex = String(2 + tile.row * GRID_SIZE + tile.col);
+
+      syncTileVisualGeometry(tile);
+    }
+
+    function buildTile(row, col, value) {
+      const rect = tileRect(row, col);
+      const el = acquireTileElement();
+
+      const tile = {
+        id: tileIdSeq++,
+        value,
+        row,
+        col,
+        x: rect ? rect.left : 0,
+        y: rect ? rect.top : 0,
+        scale: 1,
+        opacity: 1,
+        rotation: 0,
+        width: rect ? rect.width : 0,
+        height: rect ? rect.height : 0,
+        fontSize: rect ? Math.max(16, Math.floor(rect.width * 0.45)) : 18,
+        trailAlpha: 0,
+        trailScale: 0,
+        trailRotate: 0,
+        active: true,
+        el
+      };
+
+      el.textContent = String(value);
+      el.setAttribute('data-value', String(value));
+      tiles.set(tile.id, tile);
+      renderTile(tile);
+      return tile;
+    }
+
+    function destroyTile(id) {
+      const tile = tiles.get(id);
+      if (!tile) return;
+      tile.active = false;
+      tiles.delete(id);
+      releaseTileElement(tile.el);
+    }
+
+    function setTileValue(tile, value) {
+      tile.value = value;
+      tile.el.textContent = String(value);
+      tile.el.setAttribute('data-value', String(value));
+    }
+
+    function setSpawnState(tile) {
+      tile.scale = 0.2;
+      tile.opacity = 0;
+      tile.rotation = 0;
+      tile.trailAlpha = 0;
+      tile.trailScale = 0;
+      tile.trailRotate = 0;
+      renderTile(tile);
+    }
+
+    function addRandomTile() {
+      const empties = [];
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          if (board[r][c] === 0) empties.push({ r, c });
+        }
+      }
+      if (!empties.length) return null;
+
+      const { r, c } = empties[Math.floor(Math.random() * empties.length)];
+      const values = [6, 7, 8];
+      const tile = buildTile(r, c, values[Math.floor(Math.random() * values.length)]);
+      board[r][c] = tile.id;
+      return tile;
+    }
+
+    function valueAt(row, col) {
+      const id = board[row][col];
+      return id ? (tiles.get(id)?.value || 0) : 0;
+    }
+
+    function valueAtBoard(boardData, row, col) {
+      const id = boardData[row][col];
+      return id ? (tiles.get(id)?.value || 0) : 0;
+    }
+
+    function maxTile() {
+      let m = 0;
+      for (const tile of tiles.values()) {
+        if (tile.active && tile.value > m) m = tile.value;
+      }
+      return m;
+    }
+
+    function processLine(lineIds, direction) {
+      const reverse = direction === 'right' || direction === 'down';
+      const ordered = reverse ? [...lineIds].reverse() : [...lineIds];
+      const filtered = ordered.filter(Boolean);
+      const result = [];
+      let i = 0;
+
+      while (i < filtered.length) {
+        if (i === filtered.length - 1) {
+          result.push({ type: 'keep', id: filtered[i] });
+          i += 1;
+          continue;
+        }
+
+        const firstId = filtered[i];
+        const secondId = filtered[i + 1];
+        const firstTile = tiles.get(firstId);
+        const secondTile = tiles.get(secondId);
+
+        if (!firstTile || !secondTile) {
+          result.push({ type: 'keep', id: firstId });
+          i += 1;
+          continue;
+        }
+
+        const collision = resolveCollision(firstTile.value, secondTile.value, direction);
+        if (collision.type === 'vanish') {
+          result.push({ type: 'vanish', ids: [firstId, secondId] });
+          i += 2;
+        } else if (collision.type === 'merge') {
+          result.push({ type: 'merge', ids: [firstId, secondId], value: collision.value });
+          i += 2;
+        } else {
+          result.push({ type: 'keep', id: firstId });
+          i += 1;
+        }
+      }
+
+      while (result.length < GRID_SIZE) result.push({ type: 'empty' });
+      return reverse ? [...result].reverse() : result;
+    }
+
+    function simulateMove(direction) {
+      const nextBoard = Array.from({ length: GRID_SIZE }, () => Array.from({ length: GRID_SIZE }, () => 0));
+      const moveTargets = new Map();
+      const events = [];
+      let changed = false;
+
+      function keep(id, row, col) {
+        const tile = tiles.get(id);
+        if (!tile) return;
+        nextBoard[row][col] = id;
+        moveTargets.set(id, { row, col });
+        if (tile.row !== row || tile.col !== col) changed = true;
+      }
+
+      function merge(ids, row, col, value) {
+        const [a, b] = ids;
+        const ta = tiles.get(a);
+        const tb = tiles.get(b);
+        if (ta && (ta.row !== row || ta.col !== col)) changed = true;
+        if (tb && (tb.row !== row || tb.col !== col)) changed = true;
+        if (ta) moveTargets.set(a, { row, col });
+        if (tb) moveTargets.set(b, { row, col });
+        events.push({ type: 'merge', ids: [a, b], to: { row, col }, value });
+        changed = true;
+      }
+
+      function vanish(ids, row, col) {
+        const ta = tiles.get(ids[0]);
+        const tb = tiles.get(ids[1]);
+        if (ta && (ta.row !== row || ta.col !== col)) changed = true;
+        if (tb && (tb.row !== row || tb.col !== col)) changed = true;
+        if (ta) moveTargets.set(ids[0], { row, col });
+        if (tb) moveTargets.set(ids[1], { row, col });
+        events.push({ type: 'vanish', ids: [ids[0], ids[1]], to: { row, col } });
+        changed = true;
+      }
+
+      if (direction === 'left' || direction === 'right') {
+        for (let r = 0; r < GRID_SIZE; r++) {
+          const output = processLine([...board[r]], direction);
+          for (let c = 0; c < GRID_SIZE; c++) {
+            const slot = output[c];
+            if (slot.type === 'keep') {
+              if (slot.id) keep(slot.id, r, c);
+            } else if (slot.type === 'merge') {
+              merge(slot.ids, r, c, slot.value);
+            } else if (slot.type === 'vanish') {
+              vanish(slot.ids, r, c);
+            }
+          }
+        }
+      } else {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          const line = [board[0][c], board[1][c], board[2][c], board[3][c]];
+          const output = processLine(line, direction);
+          for (let r = 0; r < GRID_SIZE; r++) {
+            const slot = output[r];
+            if (slot.type === 'keep') {
+              if (slot.id) keep(slot.id, r, c);
+            } else if (slot.type === 'merge') {
+              merge(slot.ids, r, c, slot.value);
+            } else if (slot.type === 'vanish') {
+              vanish(slot.ids, r, c);
+            }
+          }
+        }
+      }
+
+      return { changed, nextBoard, moveTargets, events };
+    }
+
+    async function animateMove(moveTargets) {
+      const tasks = [];
+      const trailTasks = [];
+
+      for (const [id, to] of moveTargets.entries()) {
+        const tile = tiles.get(id);
+        if (!tile) continue;
+
+        const fromX = tile.x;
+        const fromY = tile.y;
+        const target = tileRect(to.row, to.col);
+        if (!target) continue;
+
+        const toX = target.left;
+        const toY = target.top;
+        tasks.push({ tile, fromX, fromY, toX, toY, row: to.row, col: to.col });
+
+        if (fromX !== toX || fromY !== toY) {
+          const dx = toX - fromX;
+          const dy = toY - fromY;
+          const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+          tile.trailRotate = angle;
+          trailTasks.push({ tile, angle });
+        } else {
+          tile.trailAlpha = 0;
+          tile.trailScale = 0;
+        }
+      }
+
+      if (!tasks.length) return;
+
+      await runTween(MOVE_DURATION, (raw) => {
+        const t = easeOutCubic(raw);
+        for (const tsk of tasks) {
+          tsk.tile.x = tsk.fromX + (tsk.toX - tsk.fromX) * t;
+          tsk.tile.y = tsk.fromY + (tsk.toY - tsk.fromY) * t;
+          renderTile(tsk.tile);
+        }
+      });
+
+      for (const tsk of tasks) {
+        tsk.tile.x = tsk.toX;
+        tsk.tile.y = tsk.toY;
+        tsk.tile.row = tsk.row;
+        tsk.tile.col = tsk.col;
+        renderTile(tsk.tile);
+      }
+
+      if (trailTasks.length) {
+        await runTween(TRAIL_DURATION, (raw) => {
+          const k = 1 - Math.min(1, raw);
+          for (const t of trailTasks) {
+            t.tile.trailAlpha = 0.22 * k;
+            t.tile.trailScale = 0.95 * k;
+            renderTile(t.tile);
+          }
+        });
+
+        for (const t of trailTasks) {
+          t.tile.trailAlpha = 0;
+          t.tile.trailScale = 0;
+          renderTile(t.tile);
+        }
+      }
+    }
+
+    async function animateVanish(ids, points = []) {
+      const set = [...new Set(ids)];
+      if (!set.length) return;
+
+      const victims = set
+        .map((id) => tiles.get(id))
+        .filter(Boolean)
+        .map((tile) => ({ tile, startScale: tile.scale }));
+
+      spawnImpactFlash(points);
+
+      await runTween(MERGE_DURATION, (raw) => {
+        const hold = 0.35;
+        const shrink = raw <= hold ? 0 : (raw - hold) / (1 - hold);
+        for (const v of victims) {
+          v.tile.scale = v.startScale + (0.18 - v.startScale) * shrink;
+          v.tile.opacity = 1 - shrink;
+          renderTile(v.tile);
+        }
+      });
+
+      for (const v of victims) {
+        v.tile.scale = 0.18;
+        v.tile.opacity = 0;
+        v.tile.trailAlpha = 0;
+        v.tile.trailScale = 0;
+        renderTile(v.tile);
+      }
+    }
+
+    function valueToGlowColor(value) {
+      return {
+        6: 'rgba(56, 189, 248, 0.55)',
+        7: 'rgba(74, 222, 128, 0.55)',
+        8: 'rgba(251, 113, 133, 0.55)',
+        1: 'rgba(196, 132, 252, 0.55)',
+        13: 'rgba(251, 146, 60, 0.55)',
+        78: 'rgba(103, 232, 249, 0.6)',
+        91: 'rgba(253, 224, 71, 0.6)',
+        69: 'rgba(52, 211, 153, 0.6)',
+        9: 'rgba(248, 113, 113, 0.55)'
+      }[value] || 'rgba(255, 255, 255, 0.5)';
+    }
+
+    function spawnLocalGlow(list) {
+      const seen = new Set();
+      list.forEach((tile) => {
+        if (!tile) return;
+        const key = `${tile.row}-${tile.col}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+
+        const rc = tileRect(tile.row, tile.col);
+        if (!rc) return;
+
+        const glow = document.createElement('span');
+        const size = Math.max(26, rc.width * 0.62);
+        glow.className = 'spawn-glow';
+        glow.style.left = `${rc.left + rc.width / 2}px`;
+        glow.style.top = `${rc.top + rc.height / 2}px`;
+        glow.style.setProperty('--glow-size', `${size}px`);
+        glow.style.setProperty('--glow-color', valueToGlowColor(tile.value));
+        flashLayer.appendChild(glow);
+        glow.addEventListener('animationend', () => glow.remove(), { once: true });
+      });
+    }
+
+    async function animateSpawn(list) {
+      const arr = list.filter(Boolean);
+      if (!arr.length) return;
+
+      spawnLocalGlow(arr);
+
+      arr.forEach((tile) => {
+        const rect = tileRect(tile.row, tile.col);
+        tile.width = rect?.width ?? tile.width ?? 0;
+        tile.height = rect?.height ?? tile.height ?? 0;
+        tile.fontSize = rect ? Math.max(16, Math.floor(rect.width * 0.45)) : (tile.fontSize ?? 18);
+        setSpawnState(tile);
+      });
+
+      await runTween(SPAWN_DURATION, (raw) => {
+        const k = easeOutCubic(raw);
+        const scale = 0.2 + 0.8 * k;
+        for (const tile of arr) {
+          tile.opacity = k;
+          tile.scale = scale;
+          renderTile(tile);
+        }
+      });
+
+      for (const tile of arr) {
+        tile.opacity = 1;
+        tile.scale = 1;
+        renderTile(tile);
+      }
+    }
+
+    function spawnImpactFlash(points) {
+      const seen = new Set();
+      points.forEach((p) => {
+        if (!p) return;
+        const key = `${p.row}-${p.col}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+
+        const rc = tileRect(p.row, p.col);
+        if (!rc) return;
+
+        const flash = document.createElement('span');
+        flash.className = 'impact-flash';
+        flash.style.left = `${rc.left + rc.width / 2}px`;
+        flash.style.top = `${rc.top + rc.height / 2}px`;
+        flashLayer.appendChild(flash);
+        flash.addEventListener('animationend', () => flash.remove(), { once: true });
+      });
+    }
+
+    function clearBoardIds(ids) {
+      const set = new Set(ids);
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          if (set.has(board[r][c])) board[r][c] = 0;
+        }
+      }
+    }
+
+    function showMessage(text, type) {
+      msgEl.textContent = text;
+      msgEl.className = `message ${type}`;
+    }
+
+    function checkWin(boardData) {
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c <= GRID_SIZE - WIN_PATTERN.length; c++) {
+          let ok = true;
+          for (let i = 0; i < WIN_PATTERN.length; i++) {
+            if (valueAtBoard(boardData, r, c + i) !== WIN_PATTERN[i]) {
+              ok = false;
+              break;
+            }
+          }
+          if (ok) return true;
+        }
+      }
+      return false;
+    }
+
+    function canMoveDirection(direction) {
+      return simulateMove(direction).changed;
+    }
+
+    function checkGameOver() {
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          if (board[r][c] === 0) return;
+        }
+      }
+
+      const canMove =
+        canMoveDirection('left') ||
+        canMoveDirection('right') ||
+        canMoveDirection('up') ||
+        canMoveDirection('down');
+
+      if (!canMove) {
+        gameOver = true;
+        showMessage('💀 游戏结束！无法继续移动', 'info');
+      }
+    }
+
+    async function celebrateWin() {
+      gameWon = true;
+      showMessage('🎉 恭喜获胜！目标达成：[91, 78, 69]', 'success');
+      gameContainer.classList.add('victoryPulse');
+      victoryLayer.classList.add('active');
+      await waitAnimation(VICTORY_DURATION);
+      gameContainer.classList.remove('victoryPulse');
+      victoryLayer.classList.remove('active');
+    }
+
+    async function move(direction) {
+      if (gameOver || gameWon || isAnimating) return;
+
+      const result = simulateMove(direction);
+      if (!result.changed) return;
+
+      isAnimating = true;
+      msgEl.className = 'message';
+
+      const events = result.events;
+      const moveTargets = result.moveTargets;
+
+      await animateMove(moveTargets);
+      await waitAnimation(IMPACT_DELAY);
+
+      const vanishIds = [];
+      const impactPoints = [];
+      const mergeEvents = [];
+
+      for (const ev of events) {
+        if (ev.type === 'vanish') {
+          vanishIds.push(...ev.ids);
+          impactPoints.push(ev.to);
+        } else if (ev.type === 'merge') {
+          vanishIds.push(...ev.ids);
+          impactPoints.push(ev.to);
+          mergeEvents.push(ev);
+        }
+      }
+
+      await animateVanish(vanishIds, impactPoints);
+      board = result.nextBoard;
+      clearBoardIds(vanishIds);
+
+      for (const id of [...new Set(vanishIds)]) {
+        destroyTile(id);
+      }
+
+      const spawned = [];
+      for (const ev of mergeEvents) {
+        const tile = buildTile(ev.to.row, ev.to.col, ev.value);
+        board[ev.to.row][ev.to.col] = tile.id;
+        spawned.push(tile);
+      }
+
+      await animateSpawn(spawned);
+
+      const randomTile = addRandomTile();
+      if (randomTile) await animateSpawn([randomTile]);
+
+      moves++;
+      movesEl.textContent = String(moves);
+      maxTileEl.textContent = String(maxTile());
+
+      if (checkWin(board)) {
+        await celebrateWin();
+      } else {
+        checkGameOver();
+      }
+
+      isAnimating = false;
+    }
+
+    async function newGame() {
+      if (isAnimating) return;
+      isAnimating = true;
+
+      initBoard();
+      moves = 0;
+      gameOver = false;
+      gameWon = false;
+      msgEl.className = 'message';
+
+      const inits = [addRandomTile(), addRandomTile(), addRandomTile()].filter(Boolean);
+      await animateSpawn(inits);
+
+      movesEl.textContent = '0';
+      maxTileEl.textContent = String(maxTile());
+      isAnimating = false;
+    }
+
+    function resetTouchState() {
+      touchActive = false;
+      isScrollMode = false;
+      touchAxis = 'undecided';
+    }
+
+    function onTouchStart(e) {
+      if (gameOver || gameWon || isAnimating || e.touches.length !== 1) return;
+      const t = e.touches[0];
+      touchStartX = t.clientX;
+      touchStartY = t.clientY;
+      touchLastY = t.clientY;
+      touchStartTime = performance.now();
+      touchAxis = 'undecided';
+      isScrollMode = false;
+      touchActive = true;
+      // 不做 preventDefault，保留默认，长按滚动时我们通过 JS 处理
+    }
+
+    function onTouchMove(e) {
+      if (!touchActive || gameOver || gameWon || isAnimating || e.touches.length !== 1) return;
+
+      const t = e.touches[0];
+      const x = t.clientX;
+      const y = t.clientY;
+      const dx = x - touchStartX;
+      const dy = y - touchStartY;
+      const adx = Math.abs(dx);
+      const ady = Math.abs(dy);
+      const elapsed = performance.now() - touchStartTime;
+
+      if (touchAxis === 'undecided' && (adx > TOUCH_AXIS_THRESHOLD || ady > TOUCH_AXIS_THRESHOLD)) {
+        if (adx > ady * TOUCH_AXIS_RATIO) touchAxis = 'horizontal';
+        else if (ady > adx * TOUCH_AXIS_RATIO) touchAxis = 'vertical';
+      }
+
+      if (!isScrollMode && touchAxis === 'vertical' && elapsed >= LONG_PRESS_SCROLL_DELAY) {
+        isScrollMode = true;
+      }
+
+      if (isScrollMode) {
+        window.scrollBy(0, -(y - touchLastY));
+        touchLastY = y;
+        e.preventDefault();
+        return;
+      }
+
+      if (touchAxis === 'horizontal') {
+        e.preventDefault();
+      }
+    }
+
+    function onTouchEnd(e) {
+      if (e.changedTouches.length !== 1) return;
+
+      if (!touchActive) {
+        resetTouchState();
+        return;
+      }
+
+      // 游戏状态变化/长按滚动时，不触发滑动操作
+      if (gameOver || gameWon || isAnimating || isScrollMode) {
+        resetTouchState();
+        return;
+      }
+
+      const t = e.changedTouches[0];
+      const dx = t.clientX - touchStartX;
+      const dy = t.clientY - touchStartY;
+      if (Math.abs(dx) >= SWIPE_THRESHOLD || Math.abs(dy) >= SWIPE_THRESHOLD) {
+        if (Math.abs(dx) > Math.abs(dy)) {
+          move(dx > 0 ? 'right' : 'left');
+        } else {
+          move(dy > 0 ? 'down' : 'up');
+        }
+        e.preventDefault();
+      }
+
+      resetTouchState();
+    }
+
+    function onTouchCancel() {
+      resetTouchState();
+    }
+
+    function initMouseLight() {
+      let tx = 50, ty = 50, cx = 50, cy = 50, raf = 0;
+      const setMouse = (x, y) => {
+        tx = Math.max(0, Math.min(100, x));
+        ty = Math.max(0, Math.min(100, y));
+        gameContainer.style.setProperty('--mouse-intensity', '0.8');
+
+        if (raf) return;
+        const loop = () => {
+          cx += (tx - cx) * 0.12;
+          cy += (ty - cy) * 0.12;
+
+          gameContainer.style.setProperty('--mx-slow-x', `${cx.toFixed(2)}%`);
+          gameContainer.style.setProperty('--mx-slow-y', `${cy.toFixed(2)}%`);
+
+          const ddx = Math.abs(tx - cx);
+          const ddy = Math.abs(ty - cy);
+          if (ddx < 0.25 && ddy < 0.25) {
+            raf = 0;
+            return;
+          }
+          raf = requestAnimationFrame(loop);
+        };
+        raf = requestAnimationFrame(loop);
+      };
+
+      gameContainer.addEventListener('pointermove', (e) => {
+        const rect = gameContainer.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width) * 100;
+        const y = ((e.clientY - rect.top) / rect.height) * 100;
+        setMouse(x, y);
+      });
+
+      gameContainer.addEventListener('pointerleave', () => {
+        gameContainer.style.setProperty('--mouse-intensity', '0');
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (isAnimating) return;
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'KeyW', 'KeyA', 'KeyS', 'KeyD'].includes(e.key)) {
+        e.preventDefault();
+      }
+      if (e.key === 'ArrowUp' || e.key === 'KeyW') move('up');
+      if (e.key === 'ArrowDown' || e.key === 'KeyS') move('down');
+      if (e.key === 'ArrowLeft' || e.key === 'KeyA') move('left');
+      if (e.key === 'ArrowRight' || e.key === 'KeyD') move('right');
+    });
+
+    gridEl.addEventListener('touchstart', onTouchStart, { passive: false });
+    gridEl.addEventListener('touchmove', onTouchMove, { passive: false });
+    gridEl.addEventListener('touchend', onTouchEnd, { passive: false });
+    gridEl.addEventListener('touchcancel', onTouchCancel, { passive: false });
+
+    window.addEventListener('resize', () => {
+      requestAnimationFrame(measureCellRects);
+    });
+
+    (async function boot() {
+      initGridVisual();
+      initParticles();
+      initMouseLight();
+      initBoard();
+
+      const init = [addRandomTile(), addRandomTile(), addRandomTile()].filter(Boolean);
+      await animateSpawn(init);
+
+      movesEl.textContent = String(moves);
+      maxTileEl.textContent = String(maxTile());
+    })();
+  </script>
+</body>
+</html>
