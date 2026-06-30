@@ -548,8 +548,8 @@
         <div class="score-value" id="moves">0</div>
       </div>
       <div class="score-item">
-        <div class="score-label">最高数字</div>
-        <div class="score-value" id="maxTile">0</div>
+        <div class="score-label">用时</div>
+        <div class="score-value" id="maxTile">00:00</div>
       </div>
     </div>
 
@@ -626,6 +626,8 @@
     let gameWon = false;
     let isAnimating = false;
     let tileIdSeq = 1;
+    let gameTimer = null;
+    let gameStartAt = 0;
 
     const tiles = new Map();
     const tilePool = [];
@@ -681,6 +683,29 @@
         };
         requestAnimationFrame(frame);
       });
+    }
+
+    function formatTime(totalSeconds) {
+      const m = Math.floor(totalSeconds / 60);
+      const s = totalSeconds % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function stopTimer() {
+      if (gameTimer !== null) {
+        clearInterval(gameTimer);
+        gameTimer = null;
+      }
+    }
+
+    function startTimer() {
+      stopTimer();
+      gameStartAt = Date.now();
+      maxTileEl.textContent = '00:00';
+      gameTimer = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - gameStartAt) / 1000);
+        maxTileEl.textContent = formatTime(elapsed);
+      }, 1000);
     }
 
     function tileRect(r, c) {
@@ -1288,6 +1313,7 @@
 
     async function celebrateWin() {
       gameWon = true;
+      stopTimer();
       showMessage('🎉 恭喜获胜！目标达成：[91, 78, 69]', 'success');
       gameContainer.classList.add('victoryPulse');
       victoryLayer.classList.add('active');
@@ -1348,7 +1374,6 @@
 
       moves++;
       movesEl.textContent = String(moves);
-      maxTileEl.textContent = String(maxTile());
 
       if (checkWin(board)) {
         await celebrateWin();
@@ -1369,11 +1394,15 @@
       gameWon = false;
       msgEl.className = 'message';
 
+      startTimer();
+
       const inits = [addRandomTile(), addRandomTile(), addRandomTile()].filter(Boolean);
       await animateSpawn(inits);
 
       movesEl.textContent = '0';
-      maxTileEl.textContent = String(maxTile());
+      if (gameTimer === null) {
+        startTimer();
+      }
       isAnimating = false;
     }
 
@@ -1529,8 +1558,9 @@
       const init = [addRandomTile(), addRandomTile(), addRandomTile()].filter(Boolean);
       await animateSpawn(init);
 
+      startTimer();
       movesEl.textContent = String(moves);
-      maxTileEl.textContent = String(maxTile());
+      maxTileEl.textContent = '00:00';
     })();
   </script>
 </body>
