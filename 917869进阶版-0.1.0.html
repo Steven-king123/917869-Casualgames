@@ -272,6 +272,104 @@
       margin-bottom: 14px;
     }
 
+    .pause-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 60;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(8, 10, 24, 0.58);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 18px 42px rgba(0, 0, 0, 0.36);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.985);
+      transition: opacity .18s ease, transform .18s ease;
+    }
+
+    .pause-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1);
+    }
+
+    .pause-panel {
+      width: 100%;
+      max-width: 320px;
+      padding: 18px 16px 16px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.06));
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.16);
+      text-align: center;
+    }
+
+    .pause-title {
+      font-size: clamp(1.2rem, 3.5vw, 1.6rem);
+      font-weight: 800;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      background: linear-gradient(90deg, #ffe29a, #ffb6d5, #b8d8ff);
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .pause-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .pause-stat {
+      padding: 10px 8px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .pause-stat-label {
+      font-size: 11px;
+      color: var(--text-sub);
+      margin-bottom: 4px;
+    }
+
+    .pause-stat-value {
+      font-size: clamp(1rem, 3vw, 1.35rem);
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      color: var(--text-main);
+    }
+
+    .pause-tip {
+      padding: 12px 12px 10px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px dashed rgba(255, 255, 255, 0.2);
+      color: #eef2ff;
+      font-size: 13px;
+      line-height: 1.7;
+      white-space: pre-line;
+    }
+
+    .pause-note {
+      margin-top: 10px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .pause-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
     .grid {
       position: absolute;
       inset: 0;
@@ -486,6 +584,7 @@
     .controls {
       display: flex;
       justify-content: center;
+      gap: 10px;
       max-width: 280px;
       margin: 0 auto 14px;
     }
@@ -506,6 +605,19 @@
 
     .btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
     .btn:active { transform: translateY(1px) scale(0.98); }
+
+    .btn.secondary {
+      background: linear-gradient(135deg, #4f7dff, #7c3aed);
+    }
+
+    .btn.small {
+      height: 42px;
+      font-size: 15px;
+      border-radius: 11px;
+      width: auto;
+      min-width: 120px;
+      padding: 0 14px;
+    }
 
     .rules {
       padding: 14px;
@@ -723,9 +835,31 @@
 
     <div class="board">
       <div class="grid" id="grid"></div>
+      <div id="pauseOverlay" class="pause-overlay" aria-hidden="true">
+        <div class="pause-panel" role="dialog" aria-modal="true" aria-label="暂停提示">
+          <div class="pause-title">⏸ 游戏已暂停</div>
+          <div class="pause-stats">
+            <div class="pause-stat">
+              <div class="pause-stat-label">当前步数</div>
+              <div class="pause-stat-value" id="pauseMoves">0</div>
+            </div>
+            <div class="pause-stat">
+              <div class="pause-stat-label">已用时间</div>
+              <div class="pause-stat-value" id="pauseTime">00:00</div>
+            </div>
+          </div>
+          <div class="pause-tip" id="pauseTip">别偷看啦，棋子们正在默默呼吸。
+你一走神，它们可能就会偷偷升级给你看。</div>
+          <div class="pause-note">暂停中棋盘已上锁，先休息一下再继续吧。</div>
+          <div class="pause-actions">
+            <button class="btn secondary small" type="button" id="resumeBtn">继续游戏</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="controls">
+      <button class="btn secondary small" type="button" id="pauseBtn">暂停</button>
       <button class="btn" onclick="newGame()">新游戏</button>
     </div>
 
@@ -735,7 +869,7 @@
       <p><strong>横向合成:</strong> 7→8=78, 13↔78=91, 6↔9=69, 91↔1=9</p>
       <p><strong>竖向合成:</strong> 7→6=1, 6→7=13, 8→7=1, 13↔78=91, 91↔1=9</p>
       <p><strong>消失:</strong> 1,6,7,8,9 间未定义组合碰撞消失</p>
-      <p><strong>阶段:</strong> 第一阶段=普通 91/78/69，解锁二阶后可升级；二阶达成后继续。</p>
+      <p><strong>阶段:</strong> 第一阶段=普通 91/78/69，通关第一阶段后可合成二阶 91/78/69，第二阶段达成后继续完成第三阶段取得胜利。</p>
     </div>
   </div>
 
@@ -815,6 +949,8 @@
     let isAnimating = false;
     let tileIdSeq = 1;
     let gameTimer = null;
+    let gamePaused = false;
+    let elapsedBeforePause = 0;
     let gameStartAt = 0;
     let gameStage = 0;
     let unlockedTier = 0;
@@ -828,6 +964,12 @@
     const msgEl = document.getElementById('message');
     const movesEl = document.getElementById('moves');
     const maxTileEl = document.getElementById('maxTile');
+    const pauseOverlay = document.getElementById('pauseOverlay');
+    const pauseMovesEl = document.getElementById('pauseMoves');
+    const pauseTimeEl = document.getElementById('pauseTime');
+    const pauseTipEl = document.getElementById('pauseTip');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resumeBtn = document.getElementById('resumeBtn');
     const mouseAmbient = document.getElementById('mouseAmbient');
     const ambientParticles = document.getElementById('ambientParticles');
     const victoryLayer = document.getElementById('victoryLayer');
@@ -843,6 +985,13 @@
     let isScrollMode = false;
     let touchActive = false;
 
+    const PAUSE_TIPS = [
+      '别偷看啦，棋盘会害羞的。\n给它一点神秘感，胜利会更有仪式感。',
+      '暂停不是投降，是给大脑偷偷充电。\n但偷看会把灵感吓跑哦。',
+      '玩累了？先休息一下。\n等你回来，数字还会乖乖在原地等你。',
+      '你现在看到的每一格，都是“未知”。\n别急，让它们继续保持神秘。'
+    ];
+
     function stopTimer() {
       if (gameTimer !== null) {
         clearInterval(gameTimer);
@@ -850,14 +999,58 @@
       }
     }
 
-    function startTimer() {
+    function syncTimerDisplay() {
+      const elapsed = elapsedBeforePause + Math.floor((Date.now() - gameStartAt) / 1000);
+      const formatted = formatTime(elapsed);
+      maxTileEl.textContent = formatted;
+      if (pauseTimeEl) pauseTimeEl.textContent = formatted;
+    }
+
+    function startTimer(resetElapsed = false) {
       stopTimer();
+      if (resetElapsed) elapsedBeforePause = 0;
       gameStartAt = Date.now();
-      maxTileEl.textContent = '00:00';
+      syncTimerDisplay();
       gameTimer = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - gameStartAt) / 1000);
-        maxTileEl.textContent = formatTime(elapsed);
+        if (!gamePaused) syncTimerDisplay();
       }, 1000);
+    }
+
+    function setPauseVisible(visible) {
+      if (!pauseOverlay) return;
+      pauseOverlay.classList.toggle('active', visible);
+      pauseOverlay.setAttribute('aria-hidden', visible ? 'false' : 'true');
+      if (pauseBtn) pauseBtn.textContent = visible ? '继续' : '暂停';
+    }
+
+    function updatePausePanel() {
+      if (pauseMovesEl) pauseMovesEl.textContent = String(moves);
+      syncTimerDisplay();
+      if (pauseTipEl) {
+        const tipIndex = (moves + elapsedBeforePause) % PAUSE_TIPS.length;
+        pauseTipEl.textContent = PAUSE_TIPS[tipIndex];
+      }
+    }
+
+    function pauseGame() {
+      if (gamePaused || gameOver || gameWon || isAnimating) return;
+      elapsedBeforePause += Math.floor((Date.now() - gameStartAt) / 1000);
+      gamePaused = true;
+      stopTimer();
+      updatePausePanel();
+      setPauseVisible(true);
+    }
+
+    function resumeGame() {
+      if (!gamePaused) return;
+      gamePaused = false;
+      setPauseVisible(false);
+      startTimer(false);
+    }
+
+    function togglePause() {
+      if (gamePaused) resumeGame();
+      else pauseGame();
     }
 
     function formatTime(totalSeconds) {
@@ -1765,7 +1958,7 @@
     }
 
     async function move(direction) {
-      if (gameOver || gameWon || isAnimating) return;
+      if (gameOver || gameWon || isAnimating || gamePaused) return;
 
       const result = simulateMove(direction);
       if (!result.changed) return;
@@ -1838,6 +2031,9 @@
       if (isAnimating) return;
 
       isAnimating = true;
+      gamePaused = false;
+      elapsedBeforePause = 0;
+      setPauseVisible(false);
       stopTimer();
 
       initBoard();
@@ -1848,13 +2044,13 @@
       unlockedTier = 0;
       clearMessage();
 
-      startTimer();
+      startTimer(true);
 
       const init = [addRandomTile(), addRandomTile(), addRandomTile()].filter(Boolean);
       await animateSpawn(init);
 
       movesEl.textContent = '0';
-      maxTileEl.textContent = '00:00';
+      syncTimerDisplay();
       isAnimating = false;
     }
 
@@ -1863,13 +2059,16 @@
       initParticles();
       initMouseLight();
       initBoard();
+      gamePaused = false;
+      elapsedBeforePause = 0;
+      setPauseVisible(false);
 
       const init = [addRandomTile(), addRandomTile(), addRandomTile()].filter(Boolean);
       await animateSpawn(init);
 
-      startTimer();
+      startTimer(true);
       movesEl.textContent = String(moves);
-      maxTileEl.textContent = '00:00';
+      syncTimerDisplay();
     }
 
     function resetTouchState() {
@@ -1879,7 +2078,7 @@
     }
 
     function onTouchStart(e) {
-      if (gameOver || gameWon || isAnimating || e.touches.length !== 1) return;
+      if (gamePaused || gameOver || gameWon || isAnimating || e.touches.length !== 1) return;
       const t = e.touches[0];
       touchStartX = t.clientX;
       touchStartY = t.clientY;
@@ -1891,7 +2090,7 @@
     }
 
     function onTouchMove(e) {
-      if (!touchActive || gameOver || gameWon || isAnimating || e.touches.length !== 1) return;
+      if (gamePaused || !touchActive || gameOver || gameWon || isAnimating || e.touches.length !== 1) return;
       const t = e.touches[0];
       const x = t.clientX;
       const y = t.clientY;
@@ -1927,7 +2126,7 @@
         return;
       }
 
-      if (gameOver || gameWon || isAnimating || isScrollMode) {
+      if (gamePaused || gameOver || gameWon || isAnimating || isScrollMode) {
         resetTouchState();
         return;
       }
@@ -2457,8 +2656,19 @@
       gridEl.addEventListener('touchend', onTouchEnd, { passive: false });
       gridEl.addEventListener('touchcancel', onTouchCancel, { passive: false });
 
+      if (pauseBtn) pauseBtn.addEventListener('click', togglePause);
+      if (resumeBtn) resumeBtn.addEventListener('click', resumeGame);
+
       document.addEventListener('keydown', (e) => {
         if (isAnimating) return;
+
+        if (e.key === ' ' || e.code === 'Space' || e.key === 'p' || e.key === 'P') {
+          e.preventDefault();
+          togglePause();
+          return;
+        }
+
+        if (gamePaused) return;
 
         if (e.key === 'ArrowUp' || e.key === 'KeyW') {
           e.preventDefault();
