@@ -954,6 +954,8 @@
     let gameStartAt = 0;
     let gameStage = 0;
     let unlockedTier = 0;
+    let lastSpawnValue = null;
+    let spawnValueStreak = 0;
 
     const tiles = new Map();
     const tilePool = [];
@@ -1338,13 +1340,38 @@
       return m;
     }
 
+    function resetSpawnHistory() {
+      lastSpawnValue = null;
+      spawnValueStreak = 0;
+    }
+
+    function pickSpawnValue() {
+      const values = [6, 7, 8];
+      const choice = values[Math.floor(Math.random() * values.length)];
+
+      if (choice === lastSpawnValue && spawnValueStreak >= 5) {
+        const alternatives = values.filter((v) => v !== lastSpawnValue);
+        const forced = alternatives[Math.floor(Math.random() * alternatives.length)];
+        lastSpawnValue = forced;
+        spawnValueStreak = 1;
+        return forced;
+      }
+
+      if (choice === lastSpawnValue) spawnValueStreak += 1;
+      else {
+        lastSpawnValue = choice;
+        spawnValueStreak = 1;
+      }
+
+      return choice;
+    }
+
     function addRandomTile() {
       const empties = [];
       for (let r = 0; r < GRID_SIZE; r++) for (let c = 0; c < GRID_SIZE; c++) if (board[r][c] === 0) empties.push({ r, c });
       if (!empties.length) return null;
       const { r, c } = empties[Math.floor(Math.random() * empties.length)];
-      const vals = [6, 7, 8];
-      const tile = buildTile(r, c, vals[Math.floor(Math.random() * vals.length)], 0, 'game');
+      const tile = buildTile(r, c, pickSpawnValue(), 0, 'game');
       board[r][c] = tile.id;
       return tile;
     }
@@ -2033,6 +2060,7 @@
       isAnimating = true;
       gamePaused = false;
       elapsedBeforePause = 0;
+      resetSpawnHistory();
       setPauseVisible(false);
       stopTimer();
 
@@ -2061,6 +2089,7 @@
       initBoard();
       gamePaused = false;
       elapsedBeforePause = 0;
+      resetSpawnHistory();
       setPauseVisible(false);
 
       const init = [addRandomTile(), addRandomTile(), addRandomTile()].filter(Boolean);
