@@ -619,6 +619,120 @@
       padding: 0 14px;
     }
 
+    .settings-btn {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(10, 14, 30, 0.55);
+      color: #fff;
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 0 10px 18px rgba(0, 0, 0, 0.22);
+      backdrop-filter: blur(8px);
+      z-index: 12;
+    }
+
+    .settings-btn:hover { filter: brightness(1.08); }
+    .settings-btn:active { transform: scale(0.96); }
+
+    .settings-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 10020;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(6, 8, 20, 0.58);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+    }
+
+    .settings-modal.active { display: flex; }
+
+    .settings-panel {
+      width: min(420px, 100%);
+      border-radius: 18px;
+      padding: 18px;
+      background: linear-gradient(180deg, rgba(20, 24, 50, 0.96), rgba(12, 14, 32, 0.96));
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
+    }
+
+    .settings-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+
+    .settings-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .settings-row:first-of-type { border-top: 0; padding-top: 0; }
+
+    .settings-desc {
+      color: var(--text-sub);
+      font-size: 12px;
+      line-height: 1.5;
+      margin-top: 4px;
+    }
+
+    .settings-toggle {
+      width: 20px;
+      height: 20px;
+      accent-color: #59d6ff;
+      flex: 0 0 auto;
+    }
+
+    .settings-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 14px;
+    }
+
+    .settings-textarea {
+      width: 100%;
+      min-height: 110px;
+      resize: vertical;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      background: rgba(255, 255, 255, 0.06);
+      color: #eef3ff;
+      font-size: 12px;
+      line-height: 1.55;
+      padding: 12px;
+      outline: none;
+      margin-top: 10px;
+    }
+
+    .settings-textarea::placeholder { color: rgba(255, 255, 255, 0.45); }
+
+    .settings-hint {
+      margin-top: 10px;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 11px;
+      line-height: 1.6;
+    }
+
+    .settings-status {
+      margin-top: 8px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.75);
+      line-height: 1.5;
+      min-height: 1.5em;
+    }
+
     .rules {
       padding: 14px;
       border: 1px solid rgba(255, 255, 255, 0.18);
@@ -817,16 +931,15 @@
     <div class="reflection-sheen" id="reflectionSheen"></div>
     <div class="border-flow" id="borderFlow"></div>
     <div class="victory-layer" id="victoryLayer"></div>
-
     <h1>🎮 数字合成游戏</h1>
 
     <div class="score-board">
       <div class="score-item">
-        <div class="score-label">步数</div>
+        <div class="score-label">总步数</div>
         <div class="score-value" id="moves">0</div>
       </div>
       <div class="score-item">
-        <div class="score-label">用时</div>
+        <div class="score-label">总用时</div>
         <div class="score-value" id="maxTile">00:00</div>
       </div>
     </div>
@@ -870,6 +983,39 @@
       <p><strong>竖向合成:</strong> 7→6=1, 6→7=13, 8→7=1, 13↔78=91, 91↔1=9</p>
       <p><strong>消失:</strong> 1,6,7,8,9 间未定义组合碰撞消失</p>
       <p><strong>阶段:</strong> 第一阶段=普通 91/78/69，通关第一阶段后可合成二阶 91/78/69，第二阶段达成后继续完成第三阶段取得胜利。</p>
+    </div>
+  </div>
+
+  <button id="settingsBtn" class="settings-btn" type="button" aria-label="打开设置">⚙</button>
+
+  <div id="settingsModal" class="settings-modal" aria-hidden="true">
+    <div class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="settings-title" id="settingsTitle">设置</div>
+
+      <div class="settings-row">
+        <div>
+          <div>自动保存</div>
+          <div class="settings-desc">仅同一设备、同一浏览器有效。会在每次有效操作后自动写入本地存档。</div>
+        </div>
+        <input id="autoSaveToggle" class="settings-toggle" type="checkbox" />
+      </div>
+
+      <div class="settings-row" style="display:block;">
+        <div>
+          <div>归档码</div>
+          <div class="settings-desc">导出后会自动复制；也可以把归档码粘贴回这里再导入。</div>
+        </div>
+        <textarea id="saveTextarea" class="settings-textarea" placeholder="917869:v1:..."></textarea>
+      </div>
+
+      <div class="settings-actions">
+        <button id="exportSaveBtn" class="btn secondary small" type="button">导出存档</button>
+        <button id="importSaveBtn" class="btn small" type="button">导入存档</button>
+        <button id="closeSettingsBtn" class="btn secondary small" type="button">关闭</button>
+      </div>
+
+      <div class="settings-hint">导入会覆盖当前棋盘与进度；自动保存关闭时，刷新页面将不会自动恢复新进度。</div>
+      <div id="settingsStatus" class="settings-status" aria-live="polite"></div>
     </div>
   </div>
 
@@ -975,6 +1121,21 @@
     const mouseAmbient = document.getElementById('mouseAmbient');
     const ambientParticles = document.getElementById('ambientParticles');
     const victoryLayer = document.getElementById('victoryLayer');
+    const settingsBtn = document.getElementById('settingsBtn');
+    const settingsModal = document.getElementById('settingsModal');
+    const autoSaveToggle = document.getElementById('autoSaveToggle');
+    const saveTextarea = document.getElementById('saveTextarea');
+    const exportSaveBtn = document.getElementById('exportSaveBtn');
+    const importSaveBtn = document.getElementById('importSaveBtn');
+    const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    const settingsStatus = document.getElementById('settingsStatus');
+
+    const SAVE_STORAGE_KEY = '917869-save';
+    const AUTO_SAVE_STORAGE_KEY = '917869-autoSave';
+    const SAVE_MAGIC = '917869:v1:';
+
+    let autoSaveEnabled = true;
+    let gameState = null;
 
     let tileLayer;
     let flashLayer;
@@ -1059,6 +1220,312 @@
       const m = Math.floor(totalSeconds / 60);
       const s = totalSeconds % 60;
       return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function deepClone(value) {
+      return value == null ? value : JSON.parse(JSON.stringify(value));
+    }
+
+    function encodeUtf8Base64(text) {
+      const bytes = new TextEncoder().encode(text);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      return btoa(binary);
+    }
+
+    function decodeUtf8Base64(base64) {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      return new TextDecoder().decode(bytes);
+    }
+
+    function normalizeSaveString(raw) {
+      if (typeof raw !== 'string') return '';
+      return raw.trim().replace(/\s+/g, '');
+    }
+
+    function getBoardSnapshot() {
+      return board.map((row, r) => row.map((id, c) => {
+        if (!id) return null;
+        const tile = tiles.get(id);
+        if (!tile) return null;
+        return {
+          value: tile.value,
+          tier: tile.tier,
+          row: r,
+          col: c
+        };
+      }));
+    }
+
+    function getGameState() {
+      const elapsed = gamePaused
+        ? elapsedBeforePause
+        : elapsedBeforePause + Math.floor((Date.now() - gameStartAt) / 1000);
+
+      return {
+        version: 1,
+        board: getBoardSnapshot(),
+        stage: gameStage,
+        unlockedTier,
+        moves,
+        timer: elapsed,
+        stageStats: deepClone(gameState?.stageStats) || {},
+        achievements: Array.isArray(gameState?.achievements) ? [...gameState.achievements] : [],
+        settings: {
+          autoSave: autoSaveEnabled
+        },
+        seed: Number(gameState?.seed) || 0,
+        game: {
+          over: gameOver,
+          won: gameWon
+        }
+      };
+    }
+
+    function syncGameState() {
+      gameState = getGameState();
+      return gameState;
+    }
+
+    function setSettingsStatus(text, type = '') {
+      if (!settingsStatus) return;
+      settingsStatus.textContent = text || '';
+      settingsStatus.style.color = type === 'error' ? '#ffb3b3' : type === 'success' ? '#b7ffd6' : 'rgba(255, 255, 255, 0.75)';
+    }
+
+    function setAutoSaveEnabled(enabled, persist = true) {
+      autoSaveEnabled = !!enabled;
+      if (autoSaveToggle) autoSaveToggle.checked = autoSaveEnabled;
+      if (persist) {
+        try { localStorage.setItem(AUTO_SAVE_STORAGE_KEY, autoSaveEnabled ? '1' : '0'); } catch (_) {}
+      }
+      syncGameState();
+      setSettingsStatus(autoSaveEnabled ? '自动保存已开启' : '自动保存已关闭', 'success');
+    }
+
+    function refreshSettingsUI() {
+      if (autoSaveToggle) autoSaveToggle.checked = autoSaveEnabled;
+      if (saveTextarea && settingsModal?.classList.contains('active')) {
+        saveTextarea.value = serializeGameState();
+      }
+    }
+
+    function serializeGameState() {
+      syncGameState();
+      return SAVE_MAGIC + encodeUtf8Base64(JSON.stringify(gameState));
+    }
+
+    function parseGameStateSave(saveText) {
+      const normalized = normalizeSaveString(saveText);
+      if (!normalized.startsWith(SAVE_MAGIC)) throw new Error('存档格式不正确');
+      const payload = normalized.slice(SAVE_MAGIC.length);
+      const json = decodeUtf8Base64(payload);
+      const parsed = JSON.parse(json);
+      if (!parsed || typeof parsed !== 'object') throw new Error('存档内容无效');
+      return parsed;
+    }
+
+    function sanitizeGameState(raw) {
+      if (!raw || typeof raw !== 'object') throw new Error('存档内容无效');
+      if (Number(raw.version) !== 1) throw new Error(`不支持的存档版本: ${raw.version}`);
+
+      const sanitizedBoard = Array.from({ length: GRID_SIZE }, () => Array.from({ length: GRID_SIZE }, () => null));
+      const srcBoard = Array.isArray(raw.board) ? raw.board : [];
+
+      for (let r = 0; r < GRID_SIZE; r++) {
+        const srcRow = Array.isArray(srcBoard[r]) ? srcBoard[r] : [];
+        for (let c = 0; c < GRID_SIZE; c++) {
+          const cell = srcRow[c];
+          if (cell === null || cell === undefined) continue;
+          if (typeof cell === 'number' && DEV_ALLOWED_VALUES.has(cell)) {
+            sanitizedBoard[r][c] = { value: cell, tier: 0 };
+            continue;
+          }
+          if (typeof cell === 'object' && DEV_ALLOWED_VALUES.has(Number(cell.value))) {
+            const tier = Math.max(0, Math.min(MAX_TIER, Number(cell.tier) || 0));
+            sanitizedBoard[r][c] = { value: Number(cell.value), tier };
+          }
+        }
+      }
+
+      return {
+        version: 1,
+        board: sanitizedBoard,
+        stage: Math.max(0, Math.min(2, Number(raw.stage) || 0)),
+        unlockedTier: Math.max(0, Math.min(2, Number(raw.unlockedTier) || 0)),
+        moves: Math.max(0, Number(raw.moves) || 0),
+        timer: Math.max(0, Number(raw.timer) || 0),
+        stageStats: (raw.stageStats && typeof raw.stageStats === 'object' && !Array.isArray(raw.stageStats)) ? raw.stageStats : {},
+        achievements: Array.isArray(raw.achievements) ? raw.achievements : [],
+        settings: (raw.settings && typeof raw.settings === 'object' && !Array.isArray(raw.settings)) ? raw.settings : {},
+        seed: Number(raw.seed) || 0,
+        game: (raw.game && typeof raw.game === 'object') ? raw.game : {}
+      };
+    }
+
+    function applyGameState(rawState) {
+      const state = sanitizeGameState(rawState);
+
+      clearMessage();
+      initBoard();
+      resetSpawnHistory();
+      gameStage = state.stage;
+      unlockedTier = state.unlockedTier;
+      moves = state.moves;
+      gameOver = !!state.game.over;
+      gameWon = !!state.game.won;
+
+      clearBoardDataOnly();
+      for (let r = 0; r < GRID_SIZE; r++) {
+        for (let c = 0; c < GRID_SIZE; c++) {
+          const cell = state.board[r][c];
+          if (!cell) continue;
+          const tile = buildTile(r, c, cell.value, cell.tier, 'game');
+          board[r][c] = tile.id;
+        }
+      }
+
+      movesEl.textContent = String(moves);
+      elapsedBeforePause = state.timer || 0;
+      startTimer(false);
+      syncTimerDisplay();
+      syncGameState();
+      return state;
+    }
+
+    function saveToLocalStorage() {
+      if (!autoSaveEnabled) return false;
+      try {
+        localStorage.setItem(SAVE_STORAGE_KEY, serializeGameState());
+        return true;
+      } catch (error) {
+        console.warn('自动保存失败', error);
+        return false;
+      }
+    }
+
+    function exportSave() {
+      const save = serializeGameState();
+      if (saveTextarea) saveTextarea.value = save;
+      return save;
+    }
+
+    async function copyTextToClipboard(text) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+      if (saveTextarea) {
+        saveTextarea.focus();
+        saveTextarea.select();
+        const ok = document.execCommand('copy');
+        saveTextarea.setSelectionRange(0, 0);
+        return ok;
+      }
+      return false;
+    }
+
+    function openSettingsModal() {
+      if (!settingsModal) return;
+      settingsModal.classList.add('active');
+      settingsModal.setAttribute('aria-hidden', 'false');
+      if (saveTextarea) saveTextarea.value = serializeGameState();
+      setSettingsStatus('');
+    }
+
+    function closeSettingsModal() {
+      if (!settingsModal) return;
+      settingsModal.classList.remove('active');
+      settingsModal.setAttribute('aria-hidden', 'true');
+    }
+
+    async function importSaveFromText(text) {
+      const parsed = parseGameStateSave(text);
+      const state = applyGameState(parsed);
+      if (typeof state.settings.autoSave === 'boolean') {
+        setAutoSaveEnabled(state.settings.autoSave, true);
+      }
+      localStorage.setItem(SAVE_STORAGE_KEY, serializeGameState());
+      refreshSettingsUI();
+      setSettingsStatus('导入成功', 'success');
+      return state;
+    }
+
+    function loadPersistedAutoSaveSetting() {
+      try {
+        const stored = localStorage.getItem(AUTO_SAVE_STORAGE_KEY);
+        if (stored === '0') return false;
+        if (stored === '1') return true;
+      } catch (_) {}
+      return true;
+    }
+
+    function loadSavedGameFromStorage() {
+      try {
+        const raw = localStorage.getItem(SAVE_STORAGE_KEY);
+        if (!raw) return false;
+        const parsed = parseGameStateSave(raw);
+        applyGameState(parsed);
+        if (typeof parsed.settings?.autoSave === 'boolean') {
+          setAutoSaveEnabled(parsed.settings.autoSave, false);
+        }
+        refreshSettingsUI();
+        setSettingsStatus('已恢复本地存档', 'success');
+        return true;
+      } catch (error) {
+        console.warn('读取本地存档失败', error);
+        return false;
+      }
+    }
+
+    function bindSaveSystemUI() {
+      if (settingsBtn) settingsBtn.addEventListener('click', openSettingsModal);
+      if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettingsModal);
+      if (settingsModal) {
+        settingsModal.addEventListener('click', (e) => {
+          if (e.target === settingsModal) closeSettingsModal();
+        });
+      }
+
+      if (autoSaveToggle) {
+        autoSaveToggle.addEventListener('change', () => {
+          setAutoSaveEnabled(autoSaveToggle.checked, true);
+          if (autoSaveEnabled) saveToLocalStorage();
+        });
+      }
+
+      if (exportSaveBtn) {
+        exportSaveBtn.addEventListener('click', async () => {
+          try {
+            const save = exportSave();
+            await copyTextToClipboard(save);
+            setSettingsStatus('归档码已导出并复制到剪贴板', 'success');
+          } catch (error) {
+            console.warn('导出存档失败', error);
+            setSettingsStatus('导出失败，请检查浏览器权限', 'error');
+          }
+        });
+      }
+
+      if (importSaveBtn) {
+        importSaveBtn.addEventListener('click', async () => {
+          try {
+            const text = saveTextarea ? saveTextarea.value : '';
+            if (!normalizeSaveString(text)) throw new Error('请先粘贴归档码');
+            await importSaveFromText(text);
+          } catch (error) {
+            console.warn('导入存档失败', error);
+            setSettingsStatus(error?.message || '导入失败', 'error');
+          }
+        });
+      }
+    }
+
+    function persistIfNeeded() {
+      syncGameState();
+      return saveToLocalStorage();
     }
 
     function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
@@ -1901,9 +2368,9 @@
 
     function getMilestoneMessage(level) {
       if (level === 1) {
-        return '══════════════════════\n\n第一维度完成\n\n新的共鸣已经觉醒……\n\n91、78、69\n获得了升华能力。';
+        return '══════════════════════\n\n第一维度完成\n\n新的合成已经解锁……\n\n91、78、69\n获得了升阶能力。';
       }
-      return '══════════════════════\n\n第二维度完成\n\n现实开始重组。\n\n更高阶数字已经出现。';
+      return '══════════════════════\n\n第二维度完成\n\n规则开始重组……\n\n更高阶数字已经出现。';
     }
 
     async function playVictoryAura(duration = VICTORY_DURATION) {
@@ -2051,6 +2518,7 @@
         checkGameOver();
       }
 
+      persistIfNeeded();
       isAnimating = false;
     }
 
@@ -2079,6 +2547,7 @@
 
       movesEl.textContent = '0';
       syncTimerDisplay();
+      persistIfNeeded();
       isAnimating = false;
     }
 
@@ -2086,18 +2555,29 @@
       initGridVisual();
       initParticles();
       initMouseLight();
+      autoSaveEnabled = loadPersistedAutoSaveSetting();
+      if (autoSaveToggle) autoSaveToggle.checked = autoSaveEnabled;
+      bindSaveSystemUI();
       initBoard();
       gamePaused = false;
       elapsedBeforePause = 0;
       resetSpawnHistory();
       setPauseVisible(false);
 
-      const init = [addRandomTile(), addRandomTile(), addRandomTile()].filter(Boolean);
-      await animateSpawn(init);
-
-      startTimer(true);
-      movesEl.textContent = String(moves);
-      syncTimerDisplay();
+      const restored = loadSavedGameFromStorage();
+      if (!restored) {
+        const init = [addRandomTile(), addRandomTile(), addRandomTile()].filter(Boolean);
+        await animateSpawn(init);
+        startTimer(true);
+        moves = 0;
+        movesEl.textContent = '0';
+        syncTimerDisplay();
+        persistIfNeeded();
+      } else {
+        startTimer(false);
+        movesEl.textContent = String(moves);
+        syncTimerDisplay();
+      }
     }
 
     function resetTouchState() {
