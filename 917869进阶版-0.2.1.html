@@ -61,6 +61,8 @@
       filter: blur(140px);
       opacity: 0.38;
       mix-blend-mode: screen;
+      will-change: transform;
+      transform: translateZ(0);
     }
 
     .orb-1 { width: 520px; height: 520px; left: -8%; top: -15%; background: radial-gradient(circle, rgba(132, 78, 247, 0.95), rgba(132, 78, 247, 0) 68%); animation: blob1 26s ease-in-out infinite; }
@@ -93,6 +95,7 @@
       animation-delay: var(--delay);
       opacity: 0;
       mix-blend-mode: screen;
+      will-change: transform, opacity;
     }
 
     @keyframes particleDrift {
@@ -581,6 +584,36 @@
     @keyframes premiumPulseTier2 {
       0%, 100% { box-shadow: 0 0 22px rgba(255, 255, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.26); }
       50% { box-shadow: 0 0 58px rgba(255, 255, 255, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.32); }
+    }
+
+    /* 页面不可见时暂停纯装饰动画，避免后台持续占用渲染资源。 */
+    body.effects-paused .orb,
+    body.effects-paused .particle,
+    body.effects-paused .reflection-sheen,
+    body.effects-paused .border-flow,
+    body.effects-paused .tile[data-value="91"],
+    body.effects-paused .tile[data-value="78"],
+    body.effects-paused .tile[data-value="69"] {
+      animation-play-state: paused !important;
+    }
+
+    /* 系统请求减少动态效果时保留清晰状态，关闭持续性装饰动画。 */
+    @media (prefers-reduced-motion: reduce) {
+      .orb,
+      .particle,
+      .reflection-sheen,
+      .border-flow,
+      .tile[data-value="91"],
+      .tile[data-value="78"],
+      .tile[data-value="69"] {
+        animation: none !important;
+      }
+
+      .mouse-ambient,
+      .pause-overlay,
+      .btn {
+        transition-duration: 0.01ms !important;
+      }
     }
 
     .controls {
@@ -1683,6 +1716,7 @@
     }
 
     function initParticles() {
+      if (!ambientParticles || ambientParticles.childElementCount) return;
       const colors = [
         'rgba(120, 170, 255, ',
         'rgba(178, 126, 255, ',
@@ -3203,7 +3237,24 @@
         }
       });
 
-      window.addEventListener('resize', () => requestAnimationFrame(measureCellRects));
+      let resizeRaf = 0;
+      const scheduleGridMeasure = () => {
+        if (resizeRaf) cancelAnimationFrame(resizeRaf);
+        resizeRaf = requestAnimationFrame(() => {
+          resizeRaf = 0;
+          measureCellRects();
+        });
+      };
+
+      window.addEventListener('resize', scheduleGridMeasure, { passive: true });
+      if ('ResizeObserver' in window) {
+        new ResizeObserver(scheduleGridMeasure).observe(gridEl);
+      }
+
+      document.addEventListener('visibilitychange', () => {
+        document.body.classList.toggle('effects-paused', document.hidden);
+      });
+      document.body.classList.toggle('effects-paused', document.hidden);
     }
 
     boot();
