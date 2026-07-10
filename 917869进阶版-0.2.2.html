@@ -156,14 +156,15 @@
 
     .border-flow {
       position: absolute;
-      inset: -35%;
+      inset: 0;
       z-index: 5;
       border-radius: 24px;
       pointer-events: none;
-      padding: 35%;
-      background: conic-gradient(from 0deg, #38bdf8, #6d5dfc, #d946ef, #fb7185, #facc15, #2dd4bf, #38bdf8);
-      animation: borderFlow 12s linear infinite;
-      opacity: .9;
+      padding: 2px;
+      background: linear-gradient(120deg, #38bdf8 0%, #6d5dfc 16%, #d946ef 32%, #fb7185 48%, #facc15 64%, #2dd4bf 80%, #38bdf8 100%);
+      background-size: 300% 300%;
+      animation: borderFlow 10s linear infinite;
+      opacity: .82;
       mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       mask-composite: exclude;
@@ -172,8 +173,8 @@
     }
 
     @keyframes borderFlow {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+      0% { background-position: 0% 50%; }
+      100% { background-position: 300% 50%; }
     }
 
     .victory-layer {
