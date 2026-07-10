@@ -49,36 +49,37 @@
 
     #glow-orbs {
       position: fixed;
-      inset: -20%;
+      inset: -12%;
       pointer-events: none;
-      z-index: -1;
-      filter: saturate(1.2);
+      /* body 的 isolation 会让负层级落到背景之后，光效层必须保持在页面背景之上。 */
+      z-index: 0;
+      filter: saturate(1.45) contrast(1.08);
     }
 
     .orb {
       position: absolute;
       border-radius: 50%;
-      filter: blur(140px);
-      opacity: 0.38;
+      filter: blur(92px);
+      opacity: 0.58;
       mix-blend-mode: screen;
       will-change: transform;
       transform: translateZ(0);
     }
 
-    .orb-1 { width: 520px; height: 520px; left: -8%; top: -15%; background: radial-gradient(circle, rgba(132, 78, 247, 0.95), rgba(132, 78, 247, 0) 68%); animation: blob1 26s ease-in-out infinite; }
-    .orb-2 { width: 460px; height: 460px; right: -12%; top: 2%; background: radial-gradient(circle, rgba(75, 168, 255, 0.95), rgba(75, 168, 255, 0) 70%); animation: blob2 32s ease-in-out infinite; }
-    .orb-3 { width: 500px; height: 500px; left: 16%; bottom: -22%; background: radial-gradient(circle, rgba(255, 84, 200, 0.95), rgba(255, 84, 200, 0) 68%); animation: blob3 28s ease-in-out infinite; }
-    .orb-4 { width: 430px; height: 430px; right: 8%; bottom: 0%; background: radial-gradient(circle, rgba(84, 228, 255, 0.95), rgba(84, 228, 255, 0) 67%); animation: blob4 30s ease-in-out infinite; }
+    .orb-1 { width: 560px; height: 560px; left: -10%; top: -12%; background: radial-gradient(circle, rgba(132, 78, 247, 1) 0%, rgba(132, 78, 247, 0.48) 38%, rgba(132, 78, 247, 0) 72%); animation: blob1 18s ease-in-out infinite; }
+    .orb-2 { width: 520px; height: 520px; right: -10%; top: 0%; background: radial-gradient(circle, rgba(75, 168, 255, 1) 0%, rgba(75, 168, 255, 0.46) 40%, rgba(75, 168, 255, 0) 74%); animation: blob2 22s ease-in-out infinite; }
+    .orb-3 { width: 540px; height: 540px; left: 10%; bottom: -18%; background: radial-gradient(circle, rgba(255, 84, 200, 1) 0%, rgba(255, 84, 200, 0.42) 38%, rgba(255, 84, 200, 0) 72%); animation: blob3 20s ease-in-out infinite; }
+    .orb-4 { width: 470px; height: 470px; right: 4%; bottom: -2%; background: radial-gradient(circle, rgba(84, 228, 255, 1) 0%, rgba(84, 228, 255, 0.44) 38%, rgba(84, 228, 255, 0) 72%); animation: blob4 21s ease-in-out infinite; }
 
-    @keyframes blob1 { 0% { transform: translate(-5%, 5%) scale(0.97); } 35% { transform: translate(4%, -8%) scale(1.08); } 70% { transform: translate(-7%, 2%) scale(1.02); } 100% { transform: translate(-5%, 5%) scale(0.97); } }
-    @keyframes blob2 { 0% { transform: translate(7%, -7%) scale(1.02); } 40% { transform: translate(-4%, 8%) scale(0.96); } 75% { transform: translate(8%, 4%) scale(1.08); } 100% { transform: translate(7%, -7%) scale(1.02); } }
-    @keyframes blob3 { 0% { transform: translate(3%, 6%) scale(1); } 45% { transform: translate(-8%, -5%) scale(1.1); } 85% { transform: translate(6%, 10%) scale(0.98); } 100% { transform: translate(3%, 6%) scale(1); } }
-    @keyframes blob4 { 0% { transform: translate(-7%, 2%) scale(1); } 33% { transform: translate(6%, -4%) scale(1.09); } 66% { transform: translate(10%, 8%) scale(1); } 100% { transform: translate(-7%, 2%) scale(1); } }
+    @keyframes blob1 { 0% { transform: translate(-4%, 6%) scale(0.94); } 35% { transform: translate(13%, -10%) scale(1.12); } 70% { transform: translate(-9%, 5%) scale(1.02); } 100% { transform: translate(-4%, 6%) scale(0.94); } }
+    @keyframes blob2 { 0% { transform: translate(6%, -6%) scale(1); } 40% { transform: translate(-12%, 12%) scale(0.93); } 75% { transform: translate(10%, 7%) scale(1.13); } 100% { transform: translate(6%, -6%) scale(1); } }
+    @keyframes blob3 { 0% { transform: translate(4%, 4%) scale(0.96); } 45% { transform: translate(-13%, -10%) scale(1.13); } 85% { transform: translate(9%, 12%) scale(1); } 100% { transform: translate(4%, 4%) scale(0.96); } }
+    @keyframes blob4 { 0% { transform: translate(-6%, 4%) scale(0.98); } 33% { transform: translate(11%, -8%) scale(1.12); } 66% { transform: translate(13%, 10%) scale(1); } 100% { transform: translate(-6%, 4%) scale(0.98); } }
 
     .ambient-particles {
       position: fixed;
-      inset: -20%;
-      z-index: 1;
+      inset: 0;
+      z-index: 2;
       pointer-events: none;
       overflow: hidden;
     }
@@ -86,7 +87,7 @@
     .particle {
       position: absolute;
       border-radius: 50%;
-      background: var(--particle-color, rgba(255, 255, 255, 0.12));
+      background: var(--particle-color, rgba(255, 255, 255, 0.28));
       width: var(--size);
       height: var(--size);
       left: var(--left);
@@ -96,11 +97,13 @@
       opacity: 0;
       mix-blend-mode: screen;
       will-change: transform, opacity;
+      box-shadow: 0 0 calc(var(--size) * 1.5) var(--particle-color, rgba(255, 255, 255, 0.35));
     }
 
     @keyframes particleDrift {
       0% { transform: translate(0, 0) scale(0.35); opacity: 0; }
       10% { opacity: var(--alpha); }
+      50% { opacity: calc(var(--alpha) * 1.35); }
       90% { opacity: var(--alpha); }
       100% { transform: translate(var(--dx), var(--dy)) scale(1); opacity: 0; }
     }
@@ -132,34 +135,35 @@
 
     .reflection-sheen {
       position: absolute;
-      inset: -24%;
+      inset: -38%;
       z-index: 2;
       pointer-events: none;
       opacity: 0;
       transform: translateX(-120%);
-      background: linear-gradient(110deg, rgba(255, 255, 255, 0) 49%, rgba(255, 255, 255, 0.1) 54%, rgba(255, 255, 255, 0) 58%);
+      background: linear-gradient(108deg, rgba(255, 255, 255, 0) 42%, rgba(181, 235, 255, 0.04) 47%, rgba(255, 255, 255, 0.42) 50%, rgba(218, 190, 255, 0.16) 53%, rgba(255, 255, 255, 0) 59%);
       mix-blend-mode: screen;
-      animation: reflectionSweep 9.5s ease-in-out infinite;
+      filter: blur(1px);
+      will-change: transform, opacity;
+      animation: reflectionSweep 6.8s cubic-bezier(0.28, 0.05, 0.22, 1) infinite;
     }
 
     @keyframes reflectionSweep {
-      0%, 25% { transform: translateX(-130%); opacity: 0; }
-      38% { opacity: .08; }
-      55% { transform: translateX(150%); opacity: 0; }
-      100% { transform: translateX(150%); opacity: 0; }
+      0%, 14% { transform: translateX(-118%) rotate(-6deg); opacity: 0; }
+      25% { opacity: .18; }
+      42% { transform: translateX(118%) rotate(-6deg); opacity: .3; }
+      50%, 100% { transform: translateX(118%) rotate(-6deg); opacity: 0; }
     }
 
     .border-flow {
       position: absolute;
-      inset: 0;
+      inset: -35%;
       z-index: 5;
       border-radius: 24px;
       pointer-events: none;
-      padding: 2.5px;
-      background: linear-gradient(130deg, #4f7dff, #9c56ff, #32d8ff, #4f7dff);
-      background-size: 360% 360%;
-      animation: borderFlow 20s linear infinite;
-      opacity: .75;
+      padding: 35%;
+      background: conic-gradient(from 0deg, #38bdf8, #6d5dfc, #d946ef, #fb7185, #facc15, #2dd4bf, #38bdf8);
+      animation: borderFlow 12s linear infinite;
+      opacity: .9;
       mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
       mask-composite: exclude;
@@ -168,8 +172,8 @@
     }
 
     @keyframes borderFlow {
-      0% { background-position: 0% 50%; }
-      100% { background-position: 100% 50%; }
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
     }
 
     .victory-layer {
@@ -1723,13 +1727,13 @@
         'rgba(84, 228, 255, '
       ];
 
-      for (let i = 0; i < 28; i++) {
+      for (let i = 0; i < 42; i++) {
         const p = document.createElement('span');
-        const dx = `${(Math.random() * 200 - 100).toFixed(2)}px`;
-        const dy = `${(Math.random() * 200 - 100).toFixed(2)}px`;
-        const size = `${(8 + Math.random() * 10).toFixed(2)}px`;
-        const alpha = (Math.random() * 0.14 + 0.08).toFixed(3);
-        const dur = (14 + Math.random() * 18).toFixed(2);
+        const dx = `${(Math.random() * 300 - 150).toFixed(2)}px`;
+        const dy = `${(Math.random() * 280 - 140).toFixed(2)}px`;
+        const size = `${(5 + Math.random() * 9).toFixed(2)}px`;
+        const alpha = (Math.random() * 0.2 + 0.16).toFixed(3);
+        const dur = (9 + Math.random() * 12).toFixed(2);
         const delay = (-Math.random() * Number(dur)).toFixed(2);
         const color = `${colors[Math.floor(Math.random() * colors.length)]}${alpha})`;
 
