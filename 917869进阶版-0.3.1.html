@@ -1457,7 +1457,9 @@
     }
 
     function syncTimerDisplay() {
-      const elapsed = elapsedBeforePause + Math.floor((Date.now() - gameStartAt) / 1000);
+  const elapsed = gamePaused
+      ? elapsedBeforePause
+      : elapsedBeforePause + Math.floor((Date.now() - gameStartAt) / 1000);
       const formatted = formatTime(elapsed);
       maxTileEl.textContent = formatted;
       if (pauseTimeEl) pauseTimeEl.textContent = formatted;
@@ -1494,6 +1496,8 @@
       elapsedBeforePause += Math.floor((Date.now() - gameStartAt) / 1000);
       gamePaused = true;
       stopTimer();
+      // 通知阶段统计：固化当前已用时间，暂停阶段计时
+      if (StageStatistics) StageStatistics.onPause();
       updatePausePanel();
       setPauseVisible(true);
     }
@@ -1502,6 +1506,8 @@
       if (!gamePaused) return;
       gamePaused = false;
       setPauseVisible(false);
+      // 通知阶段统计：重置 startAt，恢复阶段计时
+      if (StageStatistics) StageStatistics.onResume();
       startTimer(false);
     }
 
@@ -3557,6 +3563,7 @@
       function getElapsed(stageKey) {
         const d = data[stageKey];
         if (d.status !== 'active') return d.time;
+        if (d.startAt === 0) return d.time; // 暂停状态：startAt=0，直接返回已固化时间
         return d.time + Math.floor((Date.now() - d.startAt) / 1000);
       }
 
@@ -3673,8 +3680,8 @@
         for (let n = 1; n <= 3; n++) {
           const key = `stage${n}`;
           const d = data[key];
-          // 若阶段正在进行中，计算截至当前的已用时间
-          const elapsed = d.status === 'active'
+          // 若阶段正在进行中，计算截至当前的已用时间（startAt=0 表示已暂停，直接用固化值）
+          const elapsed = (d.status === 'active' && d.startAt !== 0)
             ? d.time + Math.floor((Date.now() - d.startAt) / 1000)
             : d.time;
           out[key] = {
@@ -3708,10 +3715,35 @@
         renderAll();
       }
 
+      // 暂停时：将所有 active 阶段的已用时间固化到 d.time，停止基于 startAt 的计算
+      function onPause() {
+        const now = Date.now();
+        for (let n = 1; n <= 3; n++) {
+          const d = data[`stage${n}`];
+          if (d.status === 'active') {
+            d.time = d.time + Math.floor((now - d.startAt) / 1000);
+            d.startAt = 0; // 标记为已暂停，getElapsed 此时直接返回 d.time
+          }
+        }
+        renderAll();
+      }
+
+      // 恢复时：将 startAt 重置为当前时间，继续从 d.time 基准开始累积
+      function onResume() {
+        const now = Date.now();
+        for (let n = 1; n <= 3; n++) {
+          const d = data[`stage${n}`];
+          if (d.status === 'active') {
+            d.startAt = now;
+          }
+        }
+        renderAll();
+      }
+
       // 每秒刷新进行中阶段的计时/步数显示
       setInterval(() => { if (!gamePaused) tickActive(); }, 1000);
 
-      return { reset, startStage, completeStage, renderAll, syncFromGameState, exportData, importData, tickActive };
+      return { reset, startStage, completeStage, renderAll, syncFromGameState, exportData, importData, tickActive, onPause, onResume };
     })();
 
     boot();
