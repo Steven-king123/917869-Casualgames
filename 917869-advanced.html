@@ -814,6 +814,9 @@
     .announcement-type { flex: 0 0 auto; padding: 3px 7px; border-radius: 999px; background: rgba(255,255,255,.1); color: #bcd4ff; font-size: 10px; font-weight: 800; }
     .announcement-meta { margin-top: 5px; color: #77e7c0; font-size: 11px; }
     .announcement-content { margin-top: 8px; color: #cbd5e1; font-size: 13px; line-height: 1.6; }
+    .announcement-list .announcement-content { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    .announcement-more { margin-top: 7px; color: #93c5fd; font-size: 11px; font-weight: 800; }
+    #announcementDetailContent { white-space: pre-wrap; overflow-y: auto; padding-right: 3px; }
     .announcement-section-title { margin: 2px 0 0; color: #fde68a; font-size: 12px; font-weight: 900; letter-spacing: .7px; }
 
     .settings-modal {
@@ -1519,8 +1522,114 @@
 
     // 公告只在此处维护；阅读状态独立存放，绝不包含在游戏存档中。
     const ANNOUNCEMENTS = [
-      { id: 'announcement-0.3.1', version: '0.3.1', date: '2026-07-12', title: '成就系统上线', type: 'feature', summary: '新增成就查看、解锁提示和隐藏成就。', content: '本次更新加入了完整的成就系统，包括普通成就、隐藏成就、成就面板和解锁提示。' },
-      { id: 'announcement-0.3.0', version: '0.3.0', date: '2026-07-01', title: '进阶版上线', type: 'update', summary: '加入三阶段玩法和阶段统计。', content: '进阶版加入三阶段玩法与阶段统计，完成每个阶段后可以继续挑战更高阶的数字组合。' }
+      { id: 'announcement-community-group', title: '交流反馈 Q 群', type: 'notice', pinned: true, summary: '交流反馈 Q 群：1061312672', content: '交流反馈 Q 群：1061312672' },
+      {
+        id: 'announcement-0.5.0-changelog', version: '0.5.0', date: '2026-07-12', title: '更新日志（0.5.0 版本及以前）', type: 'update',
+        summary: '公告、成就、阶段统计、存档与三阶段玩法等历史更新汇总。',
+        content: `更新日志（0.5.0版本及以前）
+
+[0.5.0] - 2026-07-12
+
+新增 · 公告系统
+- 新增公告栏入口、公告列表、类型、版本号和日期显示
+- 支持未读提示，阅读状态独立保存且不影响游戏存档
+- 支持公告详情和置顶内容扩展
+
+---
+
+[0.4.1] - 2026-07-12
+
+新增 · 成就系统
+- 正式加入普通成就和隐藏成就
+- 支持首次合成、阶段排列、特殊碰撞等成就
+- 支持游戏内解锁提示、成就查看界面和解锁时间记录
+- 成就状态支持本地保存；开发者模式支持解锁、重置和查看状态
+
+---
+
+[0.4.0] - 2026-07-11
+
+新增 · 阶段统计系统
+- 新增第一、第二、第三阶段统计
+- 记录各阶段完成时间和移动步数
+- 支持开始、进行中、完成状态，以及暂停、恢复和存档恢复
+
+优化 · 计时、动画与动态光效
+- 优化游戏与阶段计时逻辑、暂停处理和存档恢复同步
+- 优化生成、移动、合成、消失和高阶数字升级动画及状态同步
+- 优化背景光效、数字发光、升级反馈、胜利效果和不同设备表现
+
+修复
+- 修复流光边框、动画状态重置、阶段切换同步、计时统计不一致和部分刷新流程异常
+
+---
+
+[0.2.0] - 2026-07-04
+
+新增 · 存档系统
+- 新增自动存档，支持导入、导出存档字符串和完整恢复游戏进度
+- 存档仅在当前设备、当前浏览器中有效
+
+---
+
+[0.1.0] - 2026-07-03
+
+这是《917869》第一版完整玩法更新。
+
+新增 · 进阶玩法
+- 游戏由一次通关改为三阶段成长玩法
+- 第一阶段完成普通 91、78、69 排列，第二阶段解锁高阶数字，第三阶段完成最终挑战
+- 新增 Tier 系统、多阶段胜利流程和游戏阶段状态管理
+
+新增 · Developer Mode
+- 默认关闭；支持指定生成数字、快速进入阶段、重新开始、测试动画和调试状态
+
+新增 · 暂停功能
+- 暂停期间停止计时，支持恢复游戏
+
+优化 · 刷新逻辑
+- 重构刷新流程，提高状态恢复稳定性并优化重新开始体验
+
+---
+
+[0.0.1] - 2026-06-28
+
+新增 · 基础玩法与规则系统
+- 完成 4×4 棋盘、四方向移动、随机生成、游戏结束和胜利检测
+- 采用规则表驱动碰撞系统，支持方向性合成和移动方块发起碰撞
+- 修复传统 2048 算法无法满足本游戏规则的问题
+
+新增 · UI、动画与操作体验
+- 重新设计玻璃拟态界面，优化布局、滑动、合成、消失、生成动画与光效
+- 支持鼠标滚轮、触屏滑动、键盘控制以及 PC 与移动端浏览器
+
+新增 · 文档与修复
+- 新增 README、游戏介绍、操作和规则说明
+- 修复游戏规则、页面名称、UI 显示及多项已知 Bug
+
+---
+
+[0.0.0] - 2026-06-27
+
+实验版本
+- 完成游戏原型、基础 UI、基础控制、数字生成和方向碰撞系统
+
+---
+
+[Pre-Alpha] - 2026-06-26
+
+项目创建。
+- Initial Commit
+- 初始游戏框架
+- HTML、CSS、JavaScript 基础结构
+
+---
+
+当前版本概况
+- 单 HTML 原生架构，自定义数字合成规则与规则表驱动系统
+- Tile 与 Renderer 分离，具备独立动画系统、三阶段玩法、阶段统计、成就、公告与 Developer Mode
+- 支持暂停、自动存档、存档导入导出、触屏、键盘、鼠标与动态背景光效`
+      }
     ];
     const ANNOUNCEMENT_READ_KEY = '917869-announcement-read';
     const ANNOUNCEMENT_TYPE_LABELS = { update: '版本更新', feature: '新功能', notice: '通知', event: '限时活动' };
@@ -1661,7 +1770,9 @@
       const renderItem = (item) => {
         const unread = !readAnnouncementIds.has(item.id);
         const type = ANNOUNCEMENT_TYPE_LABELS[item.type] || '通知';
-        return `<article class="announcement-item ${unread ? 'unread' : ''}" data-announcement-id="${escapeAnnouncementHtml(item.id)}" tabindex="0" role="button"><div class="announcement-header"><div class="announcement-title">${escapeAnnouncementHtml(item.title)}</div><span class="announcement-type">${escapeAnnouncementHtml(type)}</span></div><div class="announcement-meta">${escapeAnnouncementHtml(item.version)} · ${escapeAnnouncementHtml(item.date)}</div><div class="announcement-content">${escapeAnnouncementHtml(item.summary || item.content)}</div></article>`;
+        const meta = [item.version, item.date].filter(Boolean).join(' · ');
+        const hasMore = String(item.content || '').length > String(item.summary || '').length;
+        return `<article class="announcement-item ${unread ? 'unread' : ''}" data-announcement-id="${escapeAnnouncementHtml(item.id)}" tabindex="0" role="button"><div class="announcement-header"><div class="announcement-title">${escapeAnnouncementHtml(item.title)}</div><span class="announcement-type">${escapeAnnouncementHtml(type)}</span></div>${meta ? `<div class="announcement-meta">${escapeAnnouncementHtml(meta)}</div>` : ''}<div class="announcement-content">${escapeAnnouncementHtml(item.summary || item.content)}</div>${hasMore ? '<div class="announcement-more">点击查看详情 ›</div>' : ''}</article>`;
       };
       const pinned = ANNOUNCEMENTS.filter((item) => item.pinned);
       const regular = ANNOUNCEMENTS.filter((item) => !item.pinned);
@@ -1691,7 +1802,7 @@
       const item = ANNOUNCEMENTS.find((entry) => entry.id === id);
       if (!item || !announcementDetailModal) return;
       if (announcementDetailTitle) announcementDetailTitle.textContent = item.title;
-      if (announcementDetailMeta) announcementDetailMeta.textContent = `${item.version} · ${item.date}`;
+      if (announcementDetailMeta) announcementDetailMeta.textContent = [item.version, item.date].filter(Boolean).join(' · ');
       if (announcementDetailContent) announcementDetailContent.textContent = item.content;
       readAnnouncementIds.add(item.id);
       saveReadAnnouncementIds();
