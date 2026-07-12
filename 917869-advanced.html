@@ -721,9 +721,30 @@
     .settings-btn:active { transform: scale(0.96); }
 
     .achievements-btn {
-      top: 64px;
+      top: 112px;
       font-size: 19px;
     }
+
+    .announcements-btn { top: 64px; font-size: 18px; }
+    .announcement-unread-badge {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      min-width: 11px;
+      height: 11px;
+      padding: 0 3px;
+      display: none;
+      place-items: center;
+      border: 2px solid #181c40;
+      border-radius: 999px;
+      background: #fb4b67;
+      color: #fff;
+      font-size: 8px;
+      font-weight: 900;
+      line-height: 1;
+      box-shadow: 0 0 10px rgba(251, 75, 103, .8);
+    }
+    .announcements-btn.has-unread .announcement-unread-badge { display: grid; }
 
     .achievement-toast-layer {
       position: fixed;
@@ -781,6 +802,19 @@
     .achievement-hidden-note { padding: 12px; border-radius: 14px; color: #94a3b8; font-size: 12px; line-height: 1.55; background: rgba(255,255,255,.045); border: 1px dashed rgba(255,255,255,.14); }
     .achievement-dev-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
     .achievement-dev-actions[hidden] { display: none !important; }
+
+    .announcement-panel { width: min(520px, 100%); max-height: min(720px, 88vh); display: flex; flex-direction: column; }
+    .announcement-list { display: grid; gap: 10px; overflow-y: auto; padding-right: 3px; }
+    .announcement-item { padding: 13px; border: 1px solid rgba(255,255,255,.11); border-radius: 14px; background: rgba(255,255,255,.055); }
+    .announcement-item { width: 100%; color: inherit; text-align: left; cursor: pointer; }
+    .announcement-item:hover, .announcement-item:focus-visible { border-color: rgba(147, 197, 253, .66); outline: none; filter: brightness(1.08); }
+    .announcement-item.unread { border-color: rgba(96, 198, 255, .42); background: linear-gradient(135deg, rgba(55, 153, 255, .14), rgba(159, 86, 255, .08)); }
+    .announcement-header { display: flex; align-items: flex-start; gap: 8px; }
+    .announcement-title { flex: 1; color: #f4f7ff; font-size: 15px; font-weight: 850; line-height: 1.35; }
+    .announcement-type { flex: 0 0 auto; padding: 3px 7px; border-radius: 999px; background: rgba(255,255,255,.1); color: #bcd4ff; font-size: 10px; font-weight: 800; }
+    .announcement-meta { margin-top: 5px; color: #77e7c0; font-size: 11px; }
+    .announcement-content { margin-top: 8px; color: #cbd5e1; font-size: 13px; line-height: 1.6; }
+    .announcement-section-title { margin: 2px 0 0; color: #fde68a; font-size: 12px; font-weight: 900; letter-spacing: .7px; }
 
     .settings-modal {
       position: fixed;
@@ -1343,6 +1377,7 @@
   </div><!-- /.page-layout -->
 
   <button id="settingsBtn" class="settings-btn" type="button" aria-label="打开设置">⚙</button>
+  <button id="announcementsBtn" class="settings-btn announcements-btn" type="button" aria-label="查看公告">📢<span id="announcementUnreadBadge" class="announcement-unread-badge" aria-hidden="true"></span></button>
   <button id="achievementsBtn" class="settings-btn achievements-btn" type="button" aria-label="查看成就">🏆</button>
   <div id="achievementToastLayer" class="achievement-toast-layer" aria-live="polite"></div>
 
@@ -1388,6 +1423,27 @@
       </div>
       <div class="settings-actions">
         <button id="closeAchievementsBtn" class="btn secondary small" type="button">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="announcementsModal" class="settings-modal" aria-hidden="true">
+    <div class="settings-panel announcement-panel" role="dialog" aria-modal="true" aria-labelledby="announcementsTitle">
+      <div class="settings-title" id="announcementsTitle">📢 公告</div>
+      <div id="announcementList" class="announcement-list"></div>
+      <div class="settings-actions">
+        <button id="closeAnnouncementsBtn" class="btn secondary small" type="button">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="announcementDetailModal" class="settings-modal" aria-hidden="true">
+    <div class="settings-panel announcement-panel" role="dialog" aria-modal="true" aria-labelledby="announcementDetailTitle">
+      <div id="announcementDetailTitle" class="settings-title"></div>
+      <div id="announcementDetailMeta" class="announcement-meta"></div>
+      <div id="announcementDetailContent" class="announcement-content"></div>
+      <div class="settings-actions">
+        <button id="closeAnnouncementDetailBtn" class="btn secondary small" type="button">返回公告</button>
       </div>
     </div>
   </div>
@@ -1460,6 +1516,14 @@
     }
 
     const WIN_PATTERN = [91, 78, 69];
+
+    // 公告只在此处维护；阅读状态独立存放，绝不包含在游戏存档中。
+    const ANNOUNCEMENTS = [
+      { id: 'announcement-0.3.1', version: '0.3.1', date: '2026-07-12', title: '成就系统上线', type: 'feature', summary: '新增成就查看、解锁提示和隐藏成就。', content: '本次更新加入了完整的成就系统，包括普通成就、隐藏成就、成就面板和解锁提示。' },
+      { id: 'announcement-0.3.0', version: '0.3.0', date: '2026-07-01', title: '进阶版上线', type: 'update', summary: '加入三阶段玩法和阶段统计。', content: '进阶版加入三阶段玩法与阶段统计，完成每个阶段后可以继续挑战更高阶的数字组合。' }
+    ];
+    const ANNOUNCEMENT_READ_KEY = '917869-announcement-read';
+    const ANNOUNCEMENT_TYPE_LABELS = { update: '版本更新', feature: '新功能', notice: '通知', event: '限时活动' };
 
     const ACHIEVEMENTS = [
       { id: 'first_move', title: '第一声回响', description: '完成第一次有效移动', icon: '👣' },
@@ -1535,6 +1599,16 @@
     const importSaveBtn = document.getElementById('importSaveBtn');
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
     const settingsStatus = document.getElementById('settingsStatus');
+    const announcementsBtn = document.getElementById('announcementsBtn');
+    const announcementUnreadBadge = document.getElementById('announcementUnreadBadge');
+    const announcementsModal = document.getElementById('announcementsModal');
+    const announcementList = document.getElementById('announcementList');
+    const closeAnnouncementsBtn = document.getElementById('closeAnnouncementsBtn');
+    const announcementDetailModal = document.getElementById('announcementDetailModal');
+    const announcementDetailTitle = document.getElementById('announcementDetailTitle');
+    const announcementDetailMeta = document.getElementById('announcementDetailMeta');
+    const announcementDetailContent = document.getElementById('announcementDetailContent');
+    const closeAnnouncementDetailBtn = document.getElementById('closeAnnouncementDetailBtn');
     const achievementsBtn = document.getElementById('achievementsBtn');
     const achievementsModal = document.getElementById('achievementsModal');
     const achievementList = document.getElementById('achievementList');
@@ -1552,6 +1626,85 @@
 
     let autoSaveEnabled = true;
     let gameState = null;
+
+    function loadReadAnnouncementIds() {
+      try {
+        const raw = JSON.parse(localStorage.getItem(ANNOUNCEMENT_READ_KEY) || '[]');
+        return new Set(Array.isArray(raw) ? raw.filter((id) => typeof id === 'string') : []);
+      } catch (_) {
+        return new Set();
+      }
+    }
+
+    let readAnnouncementIds = loadReadAnnouncementIds();
+
+    function saveReadAnnouncementIds() {
+      try { localStorage.setItem(ANNOUNCEMENT_READ_KEY, JSON.stringify([...readAnnouncementIds])); } catch (_) {}
+    }
+
+    function getUnreadAnnouncements() { return ANNOUNCEMENTS.filter((item) => !readAnnouncementIds.has(item.id)); }
+
+    function updateAnnouncementUnreadBadge() {
+      const count = getUnreadAnnouncements().length;
+      if (announcementsBtn) announcementsBtn.classList.toggle('has-unread', count > 0);
+      if (announcementUnreadBadge) announcementUnreadBadge.textContent = count > 9 ? '9+' : String(count);
+    }
+
+    function escapeAnnouncementHtml(value) {
+      const node = document.createElement('div');
+      node.textContent = String(value ?? '');
+      return node.innerHTML;
+    }
+
+    function renderAnnouncementList() {
+      if (!announcementList) return;
+      const renderItem = (item) => {
+        const unread = !readAnnouncementIds.has(item.id);
+        const type = ANNOUNCEMENT_TYPE_LABELS[item.type] || '通知';
+        return `<article class="announcement-item ${unread ? 'unread' : ''}" data-announcement-id="${escapeAnnouncementHtml(item.id)}" tabindex="0" role="button"><div class="announcement-header"><div class="announcement-title">${escapeAnnouncementHtml(item.title)}</div><span class="announcement-type">${escapeAnnouncementHtml(type)}</span></div><div class="announcement-meta">${escapeAnnouncementHtml(item.version)} · ${escapeAnnouncementHtml(item.date)}</div><div class="announcement-content">${escapeAnnouncementHtml(item.summary || item.content)}</div></article>`;
+      };
+      const pinned = ANNOUNCEMENTS.filter((item) => item.pinned);
+      const regular = ANNOUNCEMENTS.filter((item) => !item.pinned);
+      announcementList.innerHTML = `${pinned.length ? `<div class="announcement-section-title">置顶内容</div>${pinned.map(renderItem).join('')}` : ''}${regular.map(renderItem).join('') || '<div class="announcement-content">暂无公告。</div>'}`;
+      announcementList.querySelectorAll('.announcement-item').forEach((itemEl) => {
+        const open = () => openAnnouncementDetail(itemEl.dataset.announcementId);
+        itemEl.addEventListener('click', open);
+        itemEl.addEventListener('keydown', (event) => {
+          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); }
+        });
+      });
+    }
+
+    function openAnnouncementsModal() {
+      if (!announcementsModal) return;
+      renderAnnouncementList();
+      announcementsModal.classList.add('active');
+      announcementsModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeAnnouncementsModal() {
+      announcementsModal?.classList.remove('active');
+      announcementsModal?.setAttribute('aria-hidden', 'true');
+    }
+
+    function openAnnouncementDetail(id) {
+      const item = ANNOUNCEMENTS.find((entry) => entry.id === id);
+      if (!item || !announcementDetailModal) return;
+      if (announcementDetailTitle) announcementDetailTitle.textContent = item.title;
+      if (announcementDetailMeta) announcementDetailMeta.textContent = `${item.version} · ${item.date}`;
+      if (announcementDetailContent) announcementDetailContent.textContent = item.content;
+      readAnnouncementIds.add(item.id);
+      saveReadAnnouncementIds();
+      updateAnnouncementUnreadBadge();
+      renderAnnouncementList();
+      announcementDetailModal.classList.add('active');
+      announcementDetailModal.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeAnnouncementDetail() {
+      announcementDetailModal?.classList.remove('active');
+      announcementDetailModal?.setAttribute('aria-hidden', 'true');
+    }
 
     function createDefaultAchievementState() {
       return { unlocked: [], progress: {}, stats: { totalMoves: 0, totalMerges: 0, vanishCount: 0, maxTier: 0 }, unlockedAt: {} };
@@ -2122,6 +2275,11 @@
           if (e.target === settingsModal) closeSettingsModal();
         });
       }
+      if (announcementsBtn) announcementsBtn.addEventListener('click', openAnnouncementsModal);
+      if (closeAnnouncementsBtn) closeAnnouncementsBtn.addEventListener('click', closeAnnouncementsModal);
+      if (announcementsModal) announcementsModal.addEventListener('click', (e) => { if (e.target === announcementsModal) closeAnnouncementsModal(); });
+      if (closeAnnouncementDetailBtn) closeAnnouncementDetailBtn.addEventListener('click', closeAnnouncementDetail);
+      if (announcementDetailModal) announcementDetailModal.addEventListener('click', (e) => { if (e.target === announcementDetailModal) closeAnnouncementDetail(); });
       if (achievementsBtn) achievementsBtn.addEventListener('click', openAchievementsModal);
       if (closeAchievementsBtn) closeAchievementsBtn.addEventListener('click', closeAchievementsModal);
       if (achievementsModal) achievementsModal.addEventListener('click', (e) => { if (e.target === achievementsModal) closeAchievementsModal(); });
@@ -3229,6 +3387,7 @@
 
       achievementState = mergeAchievementStates(achievementState, loadPermanentAchievementState());
       renderAchievementList();
+      updateAnnouncementUnreadBadge();
 
       const restored = loadSavedGameFromStorage();
       if (!restored) {
