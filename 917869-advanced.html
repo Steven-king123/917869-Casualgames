@@ -562,6 +562,37 @@
       animation: premiumPulseTier1 2.1s ease-in-out infinite !important;
     }
 
+
+    /* 性能模式只移除装饰性效果；棋子移动、生成、合成与消失反馈仍由脚本保留。 */
+    body.performance-mode #glow-orbs,
+    body.performance-mode .ambient-particles,
+    body.performance-mode .particle,
+    body.performance-mode .mouse-ambient,
+    body.performance-mode .reflection-sheen,
+    body.performance-mode .border-flow,
+    body.performance-mode .victory-layer,
+    body.performance-mode .spawn-glow,
+    body.performance-mode .upgrade-converge-flash,
+    body.performance-mode .upgrade-converge-spark {
+      display: none !important;
+    }
+
+    body.performance-mode .tile {
+      animation: none !important;
+      box-shadow: none !important;
+    }
+
+    body.performance-mode .tile::before,
+    body.performance-mode .tile::after {
+      display: none !important;
+    }
+
+    body.performance-mode .game-container.victoryPulse,
+    body.performance-mode .stage-stats-card,
+    body.performance-mode .stage-stat-item.anim-activate,
+    body.performance-mode .stage-stat-item.anim-complete {
+      animation: none !important;
+    }
     .tile[data-tier="1"][data-value="78"] {
       background: linear-gradient(135deg, #34d399, #7ae582);
       color: #083c2d;
@@ -1435,6 +1466,14 @@
 
       <div class="settings-row">
         <div>
+          <div>性能模式</div>
+          <div class="settings-desc">关闭背景光效、粒子和高级动画，提升低配置设备流畅度。</div>
+        </div>
+        <input id="performanceModeToggle" class="settings-toggle" type="checkbox" />
+      </div>
+
+      <div class="settings-row">
+        <div>
           <div>自动保存</div>
           <div class="settings-desc">仅同一设备、同一浏览器有效。会在每次有效操作后自动写入本地存档。</div>
         </div>
@@ -1446,6 +1485,10 @@
           <div>归档码</div>
           <div class="settings-desc">导出后会自动复制；也可以把归档码粘贴回这里再导入。</div>
         </div>
+        <label class="settings-desc" style="display:flex; align-items:center; gap:8px; margin-top:10px;">
+          <input id="exportPerformanceModeToggle" class="settings-toggle" type="checkbox" checked />
+          导出时包含性能模式设置
+        </label>
         <textarea id="saveTextarea" class="settings-textarea" placeholder="917869:v1:..."></textarea>
       </div>
 
@@ -1586,6 +1629,10 @@
     // 公告只在此处维护；阅读状态独立存放，不包含在游戏存档中。
     const ANNOUNCEMENTS = [
       { id: 'announcement-community-group', title: '交流反馈 Q 群', type: 'notice', pinned: true, summary: '交流反馈 Q 群：1061312672', content: '交流反馈 Q 群：1061312672' },
+      { id: 'announcement-0.6.5', version: '0.6.5', date: '2026-07-12', title: '0.6.5 版本更新公告', type: 'update',
+        summary: '新增性能模式',
+        content: `新增性能模式，在低性能设备上建议开启，以提供更流畅的游戏体验。`
+      },
       { id: 'announcement-0.6.0',version: '0.6.0', date: '2026-07-12', title: '0.6.0 版本更新公告', type: 'update',
         summary: '新增排行榜',
         content: `新增排行榜，分为官方排行榜和本地排行榜，如想上官方榜，请加Q群反馈游戏昵称和成绩截图，官方榜单只在此处维护；本地成绩由 Leaderboard 独立保存，不进入游戏存档。`
@@ -1792,7 +1839,9 @@
     const victoryLayer = document.getElementById('victoryLayer');
     const settingsBtn = document.getElementById('settingsBtn');
     const settingsModal = document.getElementById('settingsModal');
+    const performanceModeToggle = document.getElementById('performanceModeToggle');
     const autoSaveToggle = document.getElementById('autoSaveToggle');
+    const exportPerformanceModeToggle = document.getElementById('exportPerformanceModeToggle');
     const saveTextarea = document.getElementById('saveTextarea');
     const exportSaveBtn = document.getElementById('exportSaveBtn');
     const importSaveBtn = document.getElementById('importSaveBtn');
@@ -1824,10 +1873,12 @@
 
     const SAVE_STORAGE_KEY = '917869-save';
     const AUTO_SAVE_STORAGE_KEY = '917869-autoSave';
+    const PERFORMANCE_MODE_STORAGE_KEY = '917869-performanceMode';
     const ACHIEVEMENT_STORAGE_KEY = '917869-achievements';
     const SAVE_MAGIC = '917869:v1:';
 
     let autoSaveEnabled = true;
+    let performanceMode = false;
     let gameState = null;
 
     function loadReadAnnouncementIds() {
@@ -2253,7 +2304,8 @@
         stageStats: StageStatistics ? deepClone(StageStatistics.exportData()) : (deepClone(gameState?.stageStats) || {}),
         achievements: deepClone(achievementState),
         settings: {
-          autoSave: autoSaveEnabled
+          autoSave: autoSaveEnabled,
+          ...(exportPerformanceModeToggle?.checked ? { performanceMode } : {})
         },
         seed: Number(gameState?.seed) || 0,
         game: {
@@ -2284,7 +2336,28 @@
       setSettingsStatus(autoSaveEnabled ? '自动保存已开启' : '自动保存已关闭', 'success');
     }
 
+    function setPerformanceMode(enabled, persist = true, announce = true) {
+      performanceMode = !!enabled;
+      document.body.classList.toggle('performance-mode', performanceMode);
+      if (performanceModeToggle) performanceModeToggle.checked = performanceMode;
+      if (persist) {
+        try { localStorage.setItem(PERFORMANCE_MODE_STORAGE_KEY, performanceMode ? '1' : '0'); } catch (_) {}
+      }
+      syncGameState();
+      if (announce) setSettingsStatus(performanceMode ? '性能模式已开启' : '性能模式已关闭', 'success');
+    }
+
+    function loadPersistedPerformanceModeSetting() {
+      try {
+        const stored = localStorage.getItem(PERFORMANCE_MODE_STORAGE_KEY);
+        if (stored === '1') return { exists: true, value: true };
+        if (stored === '0') return { exists: true, value: false };
+      } catch (_) {}
+      return { exists: false, value: false };
+    }
+
     function refreshSettingsUI() {
+      if (performanceModeToggle) performanceModeToggle.checked = performanceMode;
       if (autoSaveToggle) autoSaveToggle.checked = autoSaveEnabled;
       if (saveTextarea && settingsModal?.classList.contains('active')) {
         saveTextarea.value = serializeGameState();
@@ -2438,6 +2511,9 @@
       if (typeof state.settings.autoSave === 'boolean') {
         setAutoSaveEnabled(state.settings.autoSave, true);
       }
+      if (typeof state.settings.performanceMode === 'boolean') {
+        setPerformanceMode(state.settings.performanceMode, true, false);
+      }
       localStorage.setItem(SAVE_STORAGE_KEY, serializeGameState());
       savePermanentAchievementState();
       refreshSettingsUI();
@@ -2500,6 +2576,13 @@
       if (autoSaveToggle) {
         autoSaveToggle.addEventListener('change', () => {
           setAutoSaveEnabled(autoSaveToggle.checked, true);
+          if (autoSaveEnabled) saveToLocalStorage();
+        });
+      }
+
+      if (performanceModeToggle) {
+        performanceModeToggle.addEventListener('change', () => {
+          setPerformanceMode(performanceModeToggle.checked, true);
           if (autoSaveEnabled) saveToLocalStorage();
         });
       }
@@ -3455,7 +3538,7 @@
         document.querySelectorAll('[data-leaderboard-stage]').forEach((button) => button.classList.toggle('active', button.dataset.leaderboardStage === selectedCategory));
         document.querySelectorAll('[data-leaderboard-metric]').forEach((button) => button.classList.toggle('active', button.dataset.leaderboardMetric === selectedMetric));
         const note = selectedCategory !== 'final' ? '<div class="leaderboard-note">阶段榜单取最佳记录，不一定来自同一局游戏。</div>' : '';
-        leaderboardContent.innerHTML = `${note}<h3 class="leaderboard-heading">官方记录</h3>${renderList(getRecords(selectedCategory, selectedMetric, 'official'), selectedMetric, '当前规则版本暂无官方记录。')}<h3 class="leaderboard-heading">本地最佳记录</h3>${renderList(getRecords(selectedCategory, selectedMetric, 'local'), selectedMetric, '完成挑战后，本地最佳成绩会显示在这里。')}`;
+        leaderboardContent.innerHTML = `${note}<h3 class="leaderboard-heading">官方记录</h3>${renderList(getRecords(selectedCategory, selectedMetric, 'official'), selectedMetric, '当前规则版本暂无官方记录。')}<h3 class="leaderboard-heading">本地记录</h3>${renderList(getRecords(selectedCategory, selectedMetric, 'local'), selectedMetric, '完成挑战后，本地成绩会显示在这里。')}`;
       }
 
       function open() {
@@ -3694,6 +3777,8 @@
     }
 
     async function boot() {
+      const persistedPerformanceMode = loadPersistedPerformanceModeSetting();
+      setPerformanceMode(persistedPerformanceMode.value, false, false);
       initGridVisual();
       initParticles();
       initMouseLight();
