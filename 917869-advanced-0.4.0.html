@@ -720,6 +720,66 @@
     .settings-btn:hover { filter: brightness(1.08); }
     .settings-btn:active { transform: scale(0.96); }
 
+    .achievements-btn {
+      top: 64px;
+      font-size: 19px;
+    }
+
+    .achievement-toast-layer {
+      position: fixed;
+      top: 18px;
+      left: 50%;
+      z-index: 10050;
+      width: min(380px, calc(100vw - 28px));
+      pointer-events: none;
+      transform: translateX(-50%);
+    }
+
+    .achievement-toast {
+      padding: 13px 15px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(35, 28, 76, 0.97), rgba(12, 38, 66, 0.97));
+      border: 1px solid rgba(255, 224, 130, 0.55);
+      box-shadow: 0 16px 46px rgba(0, 0, 0, 0.45), 0 0 28px rgba(250, 204, 21, 0.18);
+      backdrop-filter: blur(12px);
+      opacity: 0;
+      transform: translateY(-18px) scale(0.96);
+      animation: achievementToastInOut 3.2s ease forwards;
+    }
+
+    .achievement-toast-label { color: #fde68a; font-size: 11px; font-weight: 800; letter-spacing: 1.2px; }
+    .achievement-toast-title { margin-top: 3px; color: #fff; font-size: 17px; font-weight: 900; }
+    .achievement-toast-desc { margin-top: 3px; color: #cbd5e1; font-size: 12px; line-height: 1.45; }
+
+    @keyframes achievementToastInOut {
+      0% { opacity: 0; transform: translateY(-18px) scale(0.96); }
+      12%, 82% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-8px) scale(0.98); }
+    }
+
+    .achievement-panel { width: min(520px, 100%); max-height: min(720px, 88vh); display: flex; flex-direction: column; }
+    .achievement-summary { color: #cbd5e1; font-size: 12px; margin: -5px 0 12px; }
+    .achievement-list { display: grid; gap: 9px; overflow-y: auto; padding-right: 3px; }
+    .achievement-item {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 11px;
+      align-items: center;
+      padding: 11px;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.055);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .achievement-item.unlocked { background: linear-gradient(135deg, rgba(250,204,21,0.12), rgba(56,189,248,0.08)); border-color: rgba(250,204,21,0.32); }
+    .achievement-icon { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; background: rgba(255,255,255,0.07); font-size: 20px; filter: grayscale(1); opacity: .5; }
+    .achievement-item.unlocked .achievement-icon { background: rgba(250,204,21,0.16); filter: none; opacity: 1; box-shadow: 0 0 18px rgba(250,204,21,.18); }
+    .achievement-name { font-size: 14px; font-weight: 800; color: #e2e8f0; }
+    .achievement-item.unlocked .achievement-name { color: #fff7cc; }
+    .achievement-description { color: #94a3b8; font-size: 11px; line-height: 1.45; margin-top: 3px; }
+    .achievement-date { color: #6ee7b7; font-size: 10px; margin-top: 4px; }
+    .achievement-dev-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .achievement-dev-actions[hidden] { display: none !important; }
+
     .settings-modal {
       position: fixed;
       inset: 0;
@@ -1281,6 +1341,8 @@
   </div><!-- /.page-layout -->
 
   <button id="settingsBtn" class="settings-btn" type="button" aria-label="打开设置">⚙</button>
+  <button id="achievementsBtn" class="settings-btn achievements-btn" type="button" aria-label="查看成就">🏆</button>
+  <div id="achievementToastLayer" class="achievement-toast-layer" aria-live="polite"></div>
 
   <div id="settingsModal" class="settings-modal" aria-hidden="true">
     <div class="settings-panel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
@@ -1313,6 +1375,21 @@
     </div>
   </div>
 
+  <div id="achievementsModal" class="settings-modal" aria-hidden="true">
+    <div class="settings-panel achievement-panel" role="dialog" aria-modal="true" aria-labelledby="achievementsTitle">
+      <div class="settings-title" id="achievementsTitle">🏆 成就回响</div>
+      <div id="achievementSummary" class="achievement-summary"></div>
+      <div id="achievementList" class="achievement-list"></div>
+      <div id="achievementDevActions" class="achievement-dev-actions" hidden>
+        <button id="unlockAllAchievementsBtn" class="btn small" type="button">解锁全部</button>
+        <button id="resetAchievementsBtn" class="btn secondary small" type="button">重置成就</button>
+      </div>
+      <div class="settings-actions">
+        <button id="closeAchievementsBtn" class="btn secondary small" type="button">关闭</button>
+      </div>
+    </div>
+  </div>
+
   <div id="devOverlay" class="dev-overlay">
     <div id="devOverlayHeader" class="dev-overlay-header">DEV OVERLAY</div>
     <div class="dev-overlay-row"><span class="dev-overlay-label">Stage</span><span id="devStage">0</span></div>
@@ -1328,7 +1405,7 @@
   <div id="devEditorMenu" class="dev-editor-menu"></div>
 
   <script>
-    const DEV_MODE = true;
+    const DEV_MODE = false;
 
     const GRID_SIZE = 4;
     const SWIPE_THRESHOLD = 24;
@@ -1382,6 +1459,29 @@
 
     const WIN_PATTERN = [91, 78, 69];
 
+    const ACHIEVEMENTS = [
+      { id: 'first_move', title: '第一声回响', description: '完成第一次有效移动', icon: '👣' },
+      { id: 'merge_13', title: '13 的诞生', description: '首次通过 7 + 6 合成 13', icon: '✨' },
+      { id: 'merge_78', title: '78 初现', description: '首次合成 78', icon: '💠' },
+      { id: 'merge_69', title: '69 之门', description: '首次合成 69', icon: '🌀' },
+      { id: 'merge_91', title: '91 合成', description: '首次合成 91', icon: '🌟' },
+      { id: 'split_91_to_9', title: '91分解', description: '首次把 91 和 1 合成出 9', icon: '⚡' },
+      { id: 'vanish_9', title: '我的9呢？！', description: '首次让 9 未发生合成而是消失', icon: '❔' },
+      { id: 'row_trio_t0', title: '三数成列', description: '首次在同一横排完成 91、78、69', icon: '🏅' },
+      { id: 'merge_91_t1', title: '91Ⅱ', description: '首次获得 91Ⅱ', icon: '✦' },
+      { id: 'merge_78_t1', title: '78Ⅱ', description: '首次获得 78Ⅱ', icon: '✦' },
+      { id: 'merge_69_t1', title: '69Ⅱ', description: '首次获得 69Ⅱ', icon: '✦' },
+      { id: 'row_trio_t1', title: '二阶三连', description: '在同一横排完成 91Ⅱ、78Ⅱ、69Ⅱ', icon: '🏆' },
+      { id: 'merge_91_t2', title: '91Ⅲ', description: '首次获得 91Ⅲ', icon: '✧' },
+      { id: 'merge_78_t2', title: '78Ⅲ', description: '首次获得 78Ⅲ', icon: '✧' },
+      { id: 'merge_69_t2', title: '69Ⅲ', description: '首次获得 69Ⅲ', icon: '✧' },
+      { id: 'row_trio_t2', title: '数字的终极意义', description: '在同一横排完成 91Ⅲ、78Ⅲ、69Ⅲ', icon: '👑' }
+    ];
+    const ACHIEVEMENT_IDS = new Set(ACHIEVEMENTS.map((item) => item.id));
+    let achievementState = createDefaultAchievementState();
+    let achievementToastQueue = [];
+    let achievementToastPlaying = false;
+
     let board = [];
     let moves = 0;
     let gameOver = false;
@@ -1423,13 +1523,173 @@
     const importSaveBtn = document.getElementById('importSaveBtn');
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
     const settingsStatus = document.getElementById('settingsStatus');
+    const achievementsBtn = document.getElementById('achievementsBtn');
+    const achievementsModal = document.getElementById('achievementsModal');
+    const achievementList = document.getElementById('achievementList');
+    const achievementSummary = document.getElementById('achievementSummary');
+    const achievementToastLayer = document.getElementById('achievementToastLayer');
+    const closeAchievementsBtn = document.getElementById('closeAchievementsBtn');
+    const achievementDevActions = document.getElementById('achievementDevActions');
+    const unlockAllAchievementsBtn = document.getElementById('unlockAllAchievementsBtn');
+    const resetAchievementsBtn = document.getElementById('resetAchievementsBtn');
 
     const SAVE_STORAGE_KEY = '917869-save';
     const AUTO_SAVE_STORAGE_KEY = '917869-autoSave';
+    const ACHIEVEMENT_STORAGE_KEY = '917869-achievements';
     const SAVE_MAGIC = '917869:v1:';
 
     let autoSaveEnabled = true;
     let gameState = null;
+
+    function createDefaultAchievementState() {
+      return { unlocked: [], progress: {}, stats: { totalMoves: 0, totalMerges: 0, vanishCount: 0, maxTier: 0 }, unlockedAt: {} };
+    }
+
+    function normalizeAchievementState(raw) {
+      const base = createDefaultAchievementState();
+      const legacyUnlocked = Array.isArray(raw) ? raw : (Array.isArray(raw?.unlocked) ? raw.unlocked : []);
+      base.unlocked = [...new Set(legacyUnlocked.filter((id) => ACHIEVEMENT_IDS.has(id)))];
+      if (raw && !Array.isArray(raw) && typeof raw === 'object') {
+        base.progress = raw.progress && typeof raw.progress === 'object' ? { ...raw.progress } : {};
+        base.unlockedAt = raw.unlockedAt && typeof raw.unlockedAt === 'object' ? { ...raw.unlockedAt } : {};
+        const stats = raw.stats && typeof raw.stats === 'object' ? raw.stats : {};
+        for (const key of Object.keys(base.stats)) base.stats[key] = Math.max(0, Number(stats[key]) || 0);
+      }
+      return base;
+    }
+
+    function mergeAchievementStates(...sources) {
+      const merged = createDefaultAchievementState();
+      for (const source of sources) {
+        if (!source) continue;
+        const state = normalizeAchievementState(source);
+        for (const id of state.unlocked) {
+          if (!merged.unlocked.includes(id)) merged.unlocked.push(id);
+          const unlockedAt = Number(state.unlockedAt[id]) || 0;
+          const currentAt = Number(merged.unlockedAt[id]) || 0;
+          if (unlockedAt && (!currentAt || unlockedAt < currentAt)) merged.unlockedAt[id] = unlockedAt;
+        }
+        merged.progress = { ...merged.progress, ...state.progress };
+        for (const key of Object.keys(merged.stats)) merged.stats[key] = Math.max(merged.stats[key], state.stats[key]);
+      }
+      return merged;
+    }
+
+    function loadPermanentAchievementState() {
+      try {
+        const raw = localStorage.getItem(ACHIEVEMENT_STORAGE_KEY);
+        return raw === null ? null : normalizeAchievementState(JSON.parse(raw));
+      } catch (error) {
+        console.warn('读取永久成就记录失败', error);
+        return null;
+      }
+    }
+
+    function savePermanentAchievementState() {
+      try {
+        localStorage.setItem(ACHIEVEMENT_STORAGE_KEY, JSON.stringify(achievementState));
+        return true;
+      } catch (error) {
+        console.warn('保存永久成就记录失败', error);
+        return false;
+      }
+    }
+
+    function renderAchievementList() {
+      if (!achievementList) return;
+      const unlocked = new Set(achievementState.unlocked);
+      achievementSummary.textContent = `已解锁 ${unlocked.size} / ${ACHIEVEMENTS.length}`;
+      achievementList.innerHTML = ACHIEVEMENTS.map((item) => {
+        const done = unlocked.has(item.id);
+        const date = done && achievementState.unlockedAt[item.id]
+          ? new Date(achievementState.unlockedAt[item.id]).toLocaleString('zh-CN') : '';
+        return `<div class="achievement-item ${done ? 'unlocked' : ''}"><div class="achievement-icon">${item.icon}</div><div><div class="achievement-name">${done ? '已解锁 · ' : '未解锁 · '}${item.title}</div><div class="achievement-description">${item.description}</div>${date ? `<div class="achievement-date">${date}</div>` : ''}</div></div>`;
+      }).join('');
+    }
+
+    function queueAchievementToast(item) {
+      achievementToastQueue.push(item);
+      playNextAchievementToast();
+    }
+
+    function playNextAchievementToast() {
+      if (achievementToastPlaying || !achievementToastQueue.length || !achievementToastLayer) return;
+      achievementToastPlaying = true;
+      const item = achievementToastQueue.shift();
+      const toast = document.createElement('div');
+      toast.className = 'achievement-toast';
+      toast.innerHTML = `<div class="achievement-toast-label">🏆 成就已解锁</div><div class="achievement-toast-title">${item.title}</div><div class="achievement-toast-desc">${item.description}</div>`;
+      achievementToastLayer.replaceChildren(toast);
+      setTimeout(() => {
+        toast.remove();
+        achievementToastPlaying = false;
+        playNextAchievementToast();
+      }, 3250);
+    }
+
+    function unlockAchievement(id, showToast = true, persist = true) {
+      if (!ACHIEVEMENT_IDS.has(id) || achievementState.unlocked.includes(id)) return false;
+      achievementState.unlocked.push(id);
+      achievementState.unlockedAt[id] = Date.now();
+      syncGameState();
+      if (persist) savePermanentAchievementState();
+      renderAchievementList();
+      const item = ACHIEVEMENTS.find((entry) => entry.id === id);
+      if (showToast && item) queueAchievementToast(item);
+      return true;
+    }
+
+    function emitAchievementEvent(type, payload = {}) {
+      const stats = achievementState.stats;
+      if (type === 'move') {
+        stats.totalMoves += 1;
+        unlockAchievement('first_move');
+      } else if (type === 'merge') {
+        stats.totalMerges += 1;
+        stats.maxTier = Math.max(stats.maxTier, Number(payload.tier) || 0);
+        if (payload.value === 13 && payload.from?.[0] === 7 && payload.from?.[1] === 6) unlockAchievement('merge_13');
+        if (payload.value === 78 && payload.tier === 0) unlockAchievement('merge_78');
+        if (payload.value === 69 && payload.tier === 0) unlockAchievement('merge_69');
+        if (payload.value === 91 && payload.tier === 0) unlockAchievement('merge_91');
+        if (payload.value === 9 && payload.from?.includes(91) && payload.from?.includes(1)) unlockAchievement('split_91_to_9');
+        if ([91, 78, 69].includes(payload.value) && payload.tier === 1) unlockAchievement(`merge_${payload.value}_t1`);
+        if ([91, 78, 69].includes(payload.value) && payload.tier === 2) unlockAchievement(`merge_${payload.value}_t2`);
+      } else if (type === 'vanish') {
+        stats.vanishCount += 1;
+        if (payload.values?.includes(9)) unlockAchievement('vanish_9');
+      } else if (type === 'boardCheck') {
+        if (hasHorizontalPattern(board, WIN_PATTERN, 0)) unlockAchievement('row_trio_t0');
+        if (hasHorizontalPattern(board, WIN_PATTERN, 1)) unlockAchievement('row_trio_t1');
+        if (hasHorizontalPattern(board, WIN_PATTERN, 2)) unlockAchievement('row_trio_t2');
+      }
+      syncGameState();
+      savePermanentAchievementState();
+    }
+
+    function openAchievementsModal() { renderAchievementList(); achievementsModal?.classList.add('active'); achievementsModal?.setAttribute('aria-hidden', 'false'); }
+    function closeAchievementsModal() { achievementsModal?.classList.remove('active'); achievementsModal?.setAttribute('aria-hidden', 'true'); }
+    function resetAchievements() {
+      if (!DEV_MODE) return false;
+      achievementState = createDefaultAchievementState();
+      syncGameState();
+      savePermanentAchievementState();
+      if (autoSaveEnabled) saveToLocalStorage();
+      renderAchievementList();
+      return true;
+    }
+
+    function unlockAllAchievements() {
+      if (!DEV_MODE) return false;
+      let changed = false;
+      for (const item of ACHIEVEMENTS) changed = unlockAchievement(item.id, false, false) || changed;
+      if (changed) {
+        syncGameState();
+        savePermanentAchievementState();
+        if (autoSaveEnabled) saveToLocalStorage();
+      }
+      renderAchievementList();
+      return changed;
+    }
 
     let tileLayer;
     let flashLayer;
@@ -1572,7 +1832,7 @@
         moves,
         timer: elapsed,
         stageStats: StageStatistics ? deepClone(StageStatistics.exportData()) : (deepClone(gameState?.stageStats) || {}),
-        achievements: Array.isArray(gameState?.achievements) ? [...gameState.achievements] : [],
+        achievements: deepClone(achievementState),
         settings: {
           autoSave: autoSaveEnabled
         },
@@ -1658,7 +1918,7 @@
         moves: Math.max(0, Number(raw.moves) || 0),
         timer: Math.max(0, Number(raw.timer) || 0),
         stageStats: (raw.stageStats && typeof raw.stageStats === 'object' && !Array.isArray(raw.stageStats)) ? raw.stageStats : {},
-        achievements: Array.isArray(raw.achievements) ? raw.achievements : [],
+        achievements: normalizeAchievementState(raw.achievements),
         settings: (raw.settings && typeof raw.settings === 'object' && !Array.isArray(raw.settings)) ? raw.settings : {},
         seed: Number(raw.seed) || 0,
         game: (raw.game && typeof raw.game === 'object') ? raw.game : {}
@@ -1676,6 +1936,9 @@
       moves = state.moves;
       gameOver = !!state.game.over;
       gameWon = !!state.game.won;
+      achievementState = mergeAchievementStates(state.achievements, loadPermanentAchievementState());
+      savePermanentAchievementState();
+      renderAchievementList();
 
       clearBoardDataOnly();
       for (let r = 0; r < GRID_SIZE; r++) {
@@ -1756,6 +2019,7 @@
         setAutoSaveEnabled(state.settings.autoSave, true);
       }
       localStorage.setItem(SAVE_STORAGE_KEY, serializeGameState());
+      savePermanentAchievementState();
       refreshSettingsUI();
       setSettingsStatus('导入成功', 'success');
       return state;
@@ -1796,6 +2060,12 @@
           if (e.target === settingsModal) closeSettingsModal();
         });
       }
+      if (achievementsBtn) achievementsBtn.addEventListener('click', openAchievementsModal);
+      if (closeAchievementsBtn) closeAchievementsBtn.addEventListener('click', closeAchievementsModal);
+      if (achievementsModal) achievementsModal.addEventListener('click', (e) => { if (e.target === achievementsModal) closeAchievementsModal(); });
+      if (DEV_MODE && achievementDevActions) achievementDevActions.hidden = false;
+      if (unlockAllAchievementsBtn) unlockAllAchievementsBtn.addEventListener('click', unlockAllAchievements);
+      if (resetAchievementsBtn) resetAchievementsBtn.addEventListener('click', resetAchievements);
 
       if (autoSaveToggle) {
         autoSaveToggle.addEventListener('change', () => {
@@ -2228,7 +2498,8 @@
           value,
           tier,
           isUpgrade,
-          fromTier
+          fromTier,
+          fromValues: [ta?.value, tb?.value]
         });
         changed = true;
       }
@@ -2240,7 +2511,7 @@
         if (tb) tb && (tb.row !== row || tb.col !== col) && (changed = true);
         if (ta) moveTargets.set(ids[0], { row, col });
         if (tb) moveTargets.set(ids[1], { row, col });
-        events.push({ type: 'vanish', ids: [ids[0], ids[1]], to: { row, col } });
+        events.push({ type: 'vanish', ids: [ids[0], ids[1]], to: { row, col }, values: [ta?.value, tb?.value] });
         changed = true;
       }
 
@@ -2816,11 +3087,18 @@
 
       await animateSpawn(spawned);
 
+      for (const ev of events) {
+        if (ev.type === 'merge') emitAchievementEvent('merge', { value: ev.value, tier: ev.tier, from: ev.fromValues });
+        else if (ev.type === 'vanish') emitAchievementEvent('vanish', { values: ev.values });
+      }
+
       const randomTile = addRandomTile();
       if (randomTile) await animateSpawn([randomTile]);
 
       moves += 1;
       movesEl.textContent = String(moves);
+      emitAchievementEvent('move', { direction });
+      emitAchievementEvent('boardCheck');
 
       const stageResult = checkWin(board);
       if (stageResult === 1 || stageResult === 2) {
@@ -2878,6 +3156,9 @@
       elapsedBeforePause = 0;
       resetSpawnHistory();
       setPauseVisible(false);
+
+      achievementState = mergeAchievementStates(achievementState, loadPermanentAchievementState());
+      renderAchievementList();
 
       const restored = loadSavedGameFromStorage();
       if (!restored) {
@@ -3470,7 +3751,13 @@
         board: (payload) => devBoard(payload),
         random: () => applyBoardData(randomTestBoard(), false),
         export: () => devExport(),
-        import: (payload) => devImport(payload)
+        import: (payload) => devImport(payload),
+        achievements: {
+          state: () => deepClone(achievementState),
+          unlockAll: () => unlockAllAchievements(),
+          reset: () => resetAchievements(),
+          unlock: (id) => unlockAchievement(String(id))
+        }
       };
 
       makeEditorMenuDraggable();
