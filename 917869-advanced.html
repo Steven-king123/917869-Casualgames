@@ -1273,6 +1273,50 @@
       }
       .stage-stat-item:last-child { border-bottom: none; }
     }
+
+    .leaderboard-btn { top: 160px; right: 16px; }
+
+    .leaderboard-panel { width: min(620px, calc(100vw - 32px)); }
+    .leaderboard-tabs { display: flex; gap: 6px; margin: 2px 0 14px; }
+    .leaderboard-tab {
+      flex: 1;
+      min-height: 36px;
+      border: 1px solid rgba(255,255,255,.18);
+      border-radius: 6px;
+      color: var(--text-sub);
+      background: rgba(255,255,255,.06);
+      cursor: pointer;
+      font: inherit;
+    }
+    .leaderboard-tab.active { color: #fff; border-color: rgba(96,165,250,.75); background: rgba(59,130,246,.25); }
+    .leaderboard-subtabs { display: flex; gap: 8px; margin-bottom: 14px; }
+    .leaderboard-subtab {
+      min-height: 32px;
+      padding: 0 14px;
+      border: 0;
+      border-bottom: 2px solid transparent;
+      color: var(--text-sub);
+      background: transparent;
+      cursor: pointer;
+      font: inherit;
+    }
+    .leaderboard-subtab.active { color: #facc15; border-color: #facc15; }
+    .leaderboard-heading { margin: 0 0 10px; font-size: 14px; color: #dbeafe; }
+    .leaderboard-note { margin: -4px 0 12px; color: var(--text-sub); font-size: 12px; line-height: 1.5; }
+    .leaderboard-list { margin-bottom: 16px; border: 1px solid rgba(255,255,255,.12); border-radius: 6px; overflow: hidden; }
+    .leaderboard-row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 40px; padding: 7px 12px; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .leaderboard-row:last-child { border-bottom: 0; }
+    .leaderboard-rank { color: #facc15; font-variant-numeric: tabular-nums; }
+    .leaderboard-player { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .leaderboard-title { margin-left: 6px; color: #c4b5fd; font-size: 12px; }
+    .leaderboard-value { color: #86efac; font-variant-numeric: tabular-nums; }
+    .leaderboard-empty { padding: 15px 12px; color: var(--text-sub); text-align: center; }
+
+    @media (max-width: 480px) {
+      .leaderboard-btn { right: 16px; }
+      .leaderboard-tabs { gap: 4px; }
+      .leaderboard-tab { font-size: 13px; }
+    }
   </style>
 
 </head>
@@ -1382,6 +1426,7 @@
   <button id="settingsBtn" class="settings-btn" type="button" aria-label="打开设置">⚙</button>
   <button id="announcementsBtn" class="settings-btn announcements-btn" type="button" aria-label="查看公告">📢<span id="announcementUnreadBadge" class="announcement-unread-badge" aria-hidden="true"></span></button>
   <button id="achievementsBtn" class="settings-btn achievements-btn" type="button" aria-label="查看成就">🏆</button>
+  <button id="leaderboardBtn" class="settings-btn leaderboard-btn" type="button" aria-label="查看排行榜">🏅</button>
   <div id="achievementToastLayer" class="achievement-toast-layer" aria-live="polite"></div>
 
   <div id="settingsModal" class="settings-modal" aria-hidden="true">
@@ -1427,6 +1472,24 @@
       <div class="settings-actions">
         <button id="closeAchievementsBtn" class="btn secondary small" type="button">关闭</button>
       </div>
+    </div>
+  </div>
+
+  <div id="leaderboardModal" class="settings-modal" aria-hidden="true">
+    <div class="settings-panel leaderboard-panel" role="dialog" aria-modal="true" aria-labelledby="leaderboardTitle">
+      <div class="settings-title" id="leaderboardTitle">🏅 排行榜</div>
+      <div class="leaderboard-tabs" role="tablist" aria-label="排行榜阶段">
+        <button class="leaderboard-tab active" type="button" data-leaderboard-stage="stage1">第一阶段</button>
+        <button class="leaderboard-tab" type="button" data-leaderboard-stage="stage2">第二阶段</button>
+        <button class="leaderboard-tab" type="button" data-leaderboard-stage="stage3">第三阶段</button>
+        <button class="leaderboard-tab" type="button" data-leaderboard-stage="final">最终通关</button>
+      </div>
+      <div class="leaderboard-subtabs" role="tablist" aria-label="排行榜指标">
+        <button class="leaderboard-subtab active" type="button" data-leaderboard-metric="moves">步数榜</button>
+        <button class="leaderboard-subtab" type="button" data-leaderboard-metric="time">时间榜</button>
+      </div>
+      <div id="leaderboardContent"></div>
+      <div class="settings-actions"><button id="closeLeaderboardBtn" class="btn secondary small" type="button">关闭</button></div>
     </div>
   </div>
 
@@ -1520,9 +1583,13 @@
 
     const WIN_PATTERN = [91, 78, 69];
 
-    // 公告只在此处维护；阅读状态独立存放，绝不包含在游戏存档中。
+    // 公告只在此处维护；阅读状态独立存放，不包含在游戏存档中。
     const ANNOUNCEMENTS = [
       { id: 'announcement-community-group', title: '交流反馈 Q 群', type: 'notice', pinned: true, summary: '交流反馈 Q 群：1061312672', content: '交流反馈 Q 群：1061312672' },
+      { id: 'announcement-0.6.0',version: '0.6.0', date: '2026-07-12', title: '0.6.0 版本更新公告', type: 'update',
+        summary: '新增排行榜',
+        content: `新增排行榜，分为官方排行榜和本地排行榜，如想上官方榜，请加Q群反馈游戏昵称和成绩截图，官方榜单只在此处维护；本地成绩由 Leaderboard 独立保存，不进入游戏存档。`
+       },
       {
         id: 'announcement-0.5.0-changelog', version: '0.5.0', date: '2026-07-12', title: '更新日志（0.5.0 版本及以前）', type: 'update',
         summary: '公告、成就、阶段统计、存档与三阶段玩法等历史更新汇总。',
@@ -1634,6 +1701,28 @@
     const ANNOUNCEMENT_READ_KEY = '917869-announcement-read';
     const ANNOUNCEMENT_TYPE_LABELS = { update: '版本更新', feature: '新功能', notice: '通知', event: '限时活动' };
 
+    // 官方榜单只在此处维护；本地成绩由 Leaderboard 独立保存，不进入游戏存档。
+    const LEADERBOARD_RULE_VERSION = '0.5.0';
+    const LEADERBOARD_LIMIT = 10;
+    const OFFICIAL_LEADERBOARD_RECORDS = {
+      stage1: [
+        { playerName: '开发者', title: '规则缔造者', time: 63, moves: 40, completedAt: 1782628500000 },
+        { playerName: '测试员 Alpha', title: '规则观察者', time: 89, moves: 69, completedAt: 1783863750000 }
+      ],
+      stage2: [
+        { playerName: '开发者', title: '规则缔造者', time: 146, moves: 69, completedAt: 1783863300000 },
+        { playerName: '测试员 Beta', title: '进阶者', time: 178, moves: 78, completedAt: 1783863750000 }
+      ],
+      stage3: [
+        { playerName: '开发者', title: '规则缔造者', time: 364, moves: 182, completedAt: 1783863300000 },
+        { playerName: '测试员 Gamma', title: '高阶行者', time: 400, moves: 191, completedAt: 1783863750000  }
+      ],
+      final: [
+        { playerName: '开发者', title: '规则缔造者', time: 472, moves: 239, completedAt: 1783690200000 },
+        { playerName: '测试员 Gamma', title: '终局者', time: 667, moves: 338, completedAt: 1783863750000 }
+      ]
+    };
+
     const ACHIEVEMENTS = [
       { id: 'first_move', title: '第一声回响', description: '完成第一次有效移动', icon: '👣' },
       { id: 'merge_13', title: '13 的诞生', description: '首次通过 7 + 6 合成 13', icon: '✨' },
@@ -1727,6 +1816,10 @@
     const achievementDevActions = document.getElementById('achievementDevActions');
     const unlockAllAchievementsBtn = document.getElementById('unlockAllAchievementsBtn');
     const resetAchievementsBtn = document.getElementById('resetAchievementsBtn');
+    const leaderboardBtn = document.getElementById('leaderboardBtn');
+    const leaderboardModal = document.getElementById('leaderboardModal');
+    const leaderboardContent = document.getElementById('leaderboardContent');
+    const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
 
     const SAVE_STORAGE_KEY = '917869-save';
     const AUTO_SAVE_STORAGE_KEY = '917869-autoSave';
@@ -2394,9 +2487,14 @@
       if (achievementsBtn) achievementsBtn.addEventListener('click', openAchievementsModal);
       if (closeAchievementsBtn) closeAchievementsBtn.addEventListener('click', closeAchievementsModal);
       if (achievementsModal) achievementsModal.addEventListener('click', (e) => { if (e.target === achievementsModal) closeAchievementsModal(); });
+      if (leaderboardBtn) leaderboardBtn.addEventListener('click', Leaderboard.open);
+      if (closeLeaderboardBtn) closeLeaderboardBtn.addEventListener('click', Leaderboard.close);
+      if (leaderboardModal) leaderboardModal.addEventListener('click', (e) => { if (e.target === leaderboardModal) Leaderboard.close(); });
+      document.querySelectorAll('[data-leaderboard-stage]').forEach((button) => button.addEventListener('click', () => Leaderboard.select(button.dataset.leaderboardStage)));
+      document.querySelectorAll('[data-leaderboard-metric]').forEach((button) => button.addEventListener('click', () => Leaderboard.select(undefined, button.dataset.leaderboardMetric)));
       if (DEV_MODE && achievementDevActions) achievementDevActions.hidden = false;
-      if (unlockAllAchievementsBtn) unlockAllAchievementsBtn.addEventListener('click', unlockAllAchievements);
-      if (resetAchievementsBtn) resetAchievementsBtn.addEventListener('click', resetAchievements);
+      if (DEV_MODE && unlockAllAchievementsBtn) unlockAllAchievementsBtn.addEventListener('click', unlockAllAchievements);
+      if (DEV_MODE && resetAchievementsBtn) resetAchievementsBtn.addEventListener('click', resetAchievements);
 
       if (autoSaveToggle) {
         autoSaveToggle.addEventListener('change', () => {
@@ -3277,6 +3375,106 @@
       msgEl.className = 'message';
     }
 
+    // 独立排行榜接口：未来接入在线服务时可保持 saveRecord/getRecords/render 调用不变。
+    const Leaderboard = (() => {
+      const STORAGE_KEY = '917869-leaderboard-records';
+      const validCategories = new Set(['stage1', 'stage2', 'stage3', 'final']);
+      let selectedCategory = 'stage1';
+      let selectedMetric = 'moves';
+
+      function escapeHtml(value) {
+        const node = document.createElement('span');
+        node.textContent = String(value ?? '');
+        return node.innerHTML;
+      }
+
+      function compare(metric) {
+        return (a, b) => {
+          const primary = Number(a[metric]) - Number(b[metric]);
+          return primary || Number(a.completedAt) - Number(b.completedAt);
+        };
+      }
+
+      function readAll() {
+        try {
+          const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+          return Array.isArray(raw) ? raw : [];
+        } catch (_) {
+          return [];
+        }
+      }
+
+      function normalize(record) {
+        if (!record || !validCategories.has(record.category)) return null;
+        const time = Math.max(0, Math.floor(Number(record.time)));
+        const movesValue = Math.max(0, Math.floor(Number(record.moves)));
+        if (!Number.isFinite(time) || !Number.isFinite(movesValue)) return null;
+        return {
+          id: typeof record.id === 'string' ? record.id : `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          category: record.category,
+          ruleVersion: typeof record.ruleVersion === 'string' ? record.ruleVersion : LEADERBOARD_RULE_VERSION,
+          playerName: String(record.playerName || '本地玩家').slice(0, 24),
+          title: String(record.title || '').slice(0, 24),
+          time,
+          moves: movesValue,
+          completedAt: Math.max(0, Number(record.completedAt) || Date.now())
+        };
+      }
+
+      function saveRecord(record) {
+        const normalized = normalize({ ...record, ruleVersion: LEADERBOARD_RULE_VERSION });
+        if (!normalized) return false;
+        const all = readAll().filter((item) => item && item.id !== normalized.id);
+        all.push(normalized);
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+          render();
+          return true;
+        } catch (error) {
+          console.warn('保存排行榜成绩失败', error);
+          return false;
+        }
+      }
+
+      function getRecords(category = selectedCategory, metric = selectedMetric, source = 'local') {
+        if (!validCategories.has(category)) return [];
+        const records = source === 'official'
+          ? (OFFICIAL_LEADERBOARD_RECORDS[category] || []).map((item) => ({ ...item, category, ruleVersion: LEADERBOARD_RULE_VERSION }))
+          : readAll().map(normalize).filter((item) => item && item.category === category && item.ruleVersion === LEADERBOARD_RULE_VERSION);
+        return records.sort(compare(metric)).slice(0, LEADERBOARD_LIMIT);
+      }
+
+      function renderList(records, metric, emptyText) {
+        if (!records.length) return `<div class="leaderboard-list"><div class="leaderboard-empty">${emptyText}</div></div>`;
+        return `<div class="leaderboard-list">${records.map((record, index) => `<div class="leaderboard-row"><span class="leaderboard-rank">${index + 1}</span><span class="leaderboard-player">${escapeHtml(record.playerName)}${record.title ? `<span class="leaderboard-title">${escapeHtml(record.title)}</span>` : ''}</span><strong class="leaderboard-value">${metric === 'time' ? formatTime(record.time) : `${record.moves} 步`}</strong></div>`).join('')}</div>`;
+      }
+
+      function render() {
+        if (!leaderboardContent) return;
+        document.querySelectorAll('[data-leaderboard-stage]').forEach((button) => button.classList.toggle('active', button.dataset.leaderboardStage === selectedCategory));
+        document.querySelectorAll('[data-leaderboard-metric]').forEach((button) => button.classList.toggle('active', button.dataset.leaderboardMetric === selectedMetric));
+        const note = selectedCategory !== 'final' ? '<div class="leaderboard-note">阶段榜单取最佳记录，不一定来自同一局游戏。</div>' : '';
+        leaderboardContent.innerHTML = `${note}<h3 class="leaderboard-heading">官方记录</h3>${renderList(getRecords(selectedCategory, selectedMetric, 'official'), selectedMetric, '当前规则版本暂无官方记录。')}<h3 class="leaderboard-heading">本地最佳记录</h3>${renderList(getRecords(selectedCategory, selectedMetric, 'local'), selectedMetric, '完成挑战后，本地最佳成绩会显示在这里。')}`;
+      }
+
+      function open() {
+        render();
+        leaderboardModal?.classList.add('active');
+        leaderboardModal?.setAttribute('aria-hidden', 'false');
+      }
+
+      function close() {
+        leaderboardModal?.classList.remove('active');
+        leaderboardModal?.setAttribute('aria-hidden', 'true');
+      }
+
+      return { saveRecord, getRecords, render, open, close, select: (category, metric) => {
+        if (validCategories.has(category)) selectedCategory = category;
+        if (metric === 'time' || metric === 'moves') selectedMetric = metric;
+        render();
+      }};
+    })();
+
     function getMilestoneMessage(level) {
       if (level === 1) {
         return '══════════════════════\n\n第一维度完成\n\n新的合成已经解锁……\n\n91、78、69\n获得了升阶能力。';
@@ -3298,12 +3496,16 @@
         gameStage = 1;
         unlockedTier = Math.max(unlockedTier, 1);
         StageStatistics.completeStage(1);
+        const stage = StageStatistics.exportData().stage1;
+        Leaderboard.saveRecord({ category: 'stage1', time: stage.time, moves: stage.moves });
         StageStatistics.startStage(2);
       } else if (level === 2) {
         if (gameStage >= 2) return;
         gameStage = 2;
         unlockedTier = Math.max(unlockedTier, 2);
         StageStatistics.completeStage(2);
+        const stage = StageStatistics.exportData().stage2;
+        Leaderboard.saveRecord({ category: 'stage2', time: stage.time, moves: stage.moves });
         StageStatistics.startStage(3);
       }
 
@@ -3316,6 +3518,13 @@
       gameWon = true;
       StageStatistics.completeStage(3);
       stopTimer();
+      const stage = StageStatistics.exportData().stage3;
+      Leaderboard.saveRecord({ category: 'stage3', time: stage.time, moves: stage.moves });
+      Leaderboard.saveRecord({
+        category: 'final',
+        time: elapsedBeforePause + Math.floor((Date.now() - gameStartAt) / 1000),
+        moves
+      });
       showMessage('══════════════════════\n\nASCENDED\n\n你完成了全部维度。\n\n数字已经超越数字本身。', 'success');
       await playVictoryAura(VICTORY_DURATION);
     }
