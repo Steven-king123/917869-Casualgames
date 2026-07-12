@@ -777,6 +777,8 @@
     .achievement-item.unlocked .achievement-name { color: #fff7cc; }
     .achievement-description { color: #94a3b8; font-size: 11px; line-height: 1.45; margin-top: 3px; }
     .achievement-date { color: #6ee7b7; font-size: 10px; margin-top: 4px; }
+    .achievement-section-title { margin: 14px 0 8px; color: #fde68a; font-size: 13px; font-weight: 900; letter-spacing: .5px; }
+    .achievement-hidden-note { padding: 12px; border-radius: 14px; color: #94a3b8; font-size: 12px; line-height: 1.55; background: rgba(255,255,255,.045); border: 1px dashed rgba(255,255,255,.14); }
     .achievement-dev-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
     .achievement-dev-actions[hidden] { display: none !important; }
 
@@ -1475,12 +1477,22 @@
       { id: 'merge_91_t2', title: '91Ⅲ', description: '首次获得 91Ⅲ', icon: '✧' },
       { id: 'merge_78_t2', title: '78Ⅲ', description: '首次获得 78Ⅲ', icon: '✧' },
       { id: 'merge_69_t2', title: '69Ⅲ', description: '首次获得 69Ⅲ', icon: '✧' },
-      { id: 'row_trio_t2', title: '数字的终极意义', description: '在同一横排完成 91Ⅲ、78Ⅲ、69Ⅲ', icon: '👑' }
+      { id: 'row_trio_t2', title: '数字的终极意义', description: '在同一横排完成 91Ⅲ、78Ⅲ、69Ⅲ', icon: '👑' },
+      { id: 'escape_full_board', title: '绝处逢生', description: '棋盘无空格时完成有效移动，并在本次移动后清理出至少 3 个空格', icon: '🌱' },
+      { id: 'multi_merge_move', title: '一气呵成', description: '单次移动中完成 2 次或以上合成', icon: '💥' },
+      { id: 'merge_and_vanish', title: '双重回响', description: '单次有效移动中同时发生合成和消失', icon: '🔀' },
+      { id: 'merge_streak_3', title: '连续反应', description: '连续 3 次有效移动都至少发生一次合成', icon: '🔗' },
+      { id: 'triple_vanish_move', title: '真干净', description: '单次移动中发生 3 次或以上消失事件', icon: '🧹' },
+      { id: 'invalid_5', title: '不动如山', description: '连续 5 次输入无效方向，棋盘状态没有改变', icon: '🗿', hidden: true },
+      { id: 'cube_sequence', title: '魔方', description: '连续依次完成上、左、下、右四次有效移动', icon: '🧊', hidden: true },
+      { id: 'vanish_100', title: '棋盘清理大师', description: '累计发生 100 次消失', icon: '🌪️', hidden: true },
+      { id: 'two_fates', title: '两种命运', description: '同一局中让一个 9 合成、另一个 9 消失', icon: '⚖️', hidden: true }
     ];
     const ACHIEVEMENT_IDS = new Set(ACHIEVEMENTS.map((item) => item.id));
     let achievementState = createDefaultAchievementState();
     let achievementToastQueue = [];
     let achievementToastPlaying = false;
+    let runAchievementState = createDefaultRunAchievementState();
 
     let board = [];
     let moves = 0;
@@ -1545,6 +1557,10 @@
       return { unlocked: [], progress: {}, stats: { totalMoves: 0, totalMerges: 0, vanishCount: 0, maxTier: 0 }, unlockedAt: {} };
     }
 
+    function createDefaultRunAchievementState() {
+      return { invalidStreak: 0, mergeMoveStreak: 0, cubeProgress: 0, nineMerged: false, nineVanished: false };
+    }
+
     function normalizeAchievementState(raw) {
       const base = createDefaultAchievementState();
       const legacyUnlocked = Array.isArray(raw) ? raw : (Array.isArray(raw?.unlocked) ? raw.unlocked : []);
@@ -1598,13 +1614,17 @@
     function renderAchievementList() {
       if (!achievementList) return;
       const unlocked = new Set(achievementState.unlocked);
-      achievementSummary.textContent = `已解锁 ${unlocked.size} / ${ACHIEVEMENTS.length}`;
-      achievementList.innerHTML = ACHIEVEMENTS.map((item) => {
+      const normal = ACHIEVEMENTS.filter((item) => !item.hidden);
+      const hidden = ACHIEVEMENTS.filter((item) => item.hidden);
+      const hiddenUnlocked = hidden.filter((item) => unlocked.has(item.id));
+      achievementSummary.textContent = `常规成就 ${normal.filter((item) => unlocked.has(item.id)).length} / ${normal.length}`;
+      const renderItem = (item) => {
         const done = unlocked.has(item.id);
         const date = done && achievementState.unlockedAt[item.id]
           ? new Date(achievementState.unlockedAt[item.id]).toLocaleString('zh-CN') : '';
         return `<div class="achievement-item ${done ? 'unlocked' : ''}"><div class="achievement-icon">${item.icon}</div><div><div class="achievement-name">${done ? '已解锁 · ' : '未解锁 · '}${item.title}</div><div class="achievement-description">${item.description}</div>${date ? `<div class="achievement-date">${date}</div>` : ''}</div></div>`;
-      }).join('');
+      };
+      achievementList.innerHTML = `<div class="achievement-section-title">常规成就</div>${normal.map(renderItem).join('')}<div class="achievement-section-title">隐藏成就（${hiddenUnlocked.length}/${hidden.length}）</div>${hiddenUnlocked.length ? hiddenUnlocked.map(renderItem).join('') : '<div class="achievement-hidden-note">尚未发现隐藏成就。隐藏成就只有在解锁后才会显现。</div>'}`;
     }
 
     function queueAchievementToast(item) {
@@ -1664,6 +1684,47 @@
       }
       syncGameState();
       savePermanentAchievementState();
+    }
+
+    function countBoardEmpties(boardData = board) {
+      let count = 0;
+      for (let r = 0; r < GRID_SIZE; r++) for (let c = 0; c < GRID_SIZE; c++) if (!boardData[r][c]) count += 1;
+      return count;
+    }
+
+    function recordInvalidAchievementInput() {
+      runAchievementState.invalidStreak += 1;
+      if (runAchievementState.invalidStreak >= 5) unlockAchievement('invalid_5');
+    }
+
+    function recordValidDirection(direction) {
+      runAchievementState.invalidStreak = 0;
+      const sequence = ['up', 'left', 'down', 'right'];
+      const expected = sequence[runAchievementState.cubeProgress];
+      if (direction === expected) runAchievementState.cubeProgress += 1;
+      else runAchievementState.cubeProgress = direction === sequence[0] ? 1 : 0;
+      if (runAchievementState.cubeProgress === sequence.length) {
+        unlockAchievement('cube_sequence');
+        runAchievementState.cubeProgress = 0;
+      }
+    }
+
+    function evaluateMoveAchievements(direction, events, emptyBefore, emptyAfter) {
+      const mergeEvents = events.filter((event) => event.type === 'merge');
+      const vanishEvents = events.filter((event) => event.type === 'vanish');
+      recordValidDirection(direction);
+      if (emptyBefore === 0 && emptyAfter >= 3) unlockAchievement('escape_full_board');
+      if (mergeEvents.length >= 2) unlockAchievement('multi_merge_move');
+      if (mergeEvents.length && vanishEvents.length) unlockAchievement('merge_and_vanish');
+      if (vanishEvents.length >= 3) unlockAchievement('triple_vanish_move');
+
+      runAchievementState.mergeMoveStreak = mergeEvents.length ? runAchievementState.mergeMoveStreak + 1 : 0;
+      if (runAchievementState.mergeMoveStreak >= 3) unlockAchievement('merge_streak_3');
+
+      if (mergeEvents.some((event) => event.fromValues?.includes(9))) runAchievementState.nineMerged = true;
+      if (vanishEvents.some((event) => event.values?.includes(9))) runAchievementState.nineVanished = true;
+      if (runAchievementState.nineMerged && runAchievementState.nineVanished) unlockAchievement('two_fates');
+      if (achievementState.stats.vanishCount >= 100) unlockAchievement('vanish_100');
     }
 
     function openAchievementsModal() { renderAchievementList(); achievementsModal?.classList.add('active'); achievementsModal?.setAttribute('aria-hidden', 'false'); }
@@ -1936,6 +1997,7 @@
       moves = state.moves;
       gameOver = !!state.game.over;
       gameWon = !!state.game.won;
+      runAchievementState = createDefaultRunAchievementState();
       achievementState = mergeAchievementStates(state.achievements, loadPermanentAchievementState());
       savePermanentAchievementState();
       renderAchievementList();
@@ -3039,8 +3101,12 @@
     async function move(direction) {
       if (gameOver || gameWon || isAnimating || gamePaused) return;
 
+      const emptyBefore = countBoardEmpties();
       const result = simulateMove(direction);
-      if (!result.changed) return;
+      if (!result.changed) {
+        recordInvalidAchievementInput();
+        return;
+      }
 
       isAnimating = true;
       clearMessage();
@@ -3092,8 +3158,11 @@
         else if (ev.type === 'vanish') emitAchievementEvent('vanish', { values: ev.values });
       }
 
+      const emptyAfterResolution = countBoardEmpties();
       const randomTile = addRandomTile();
       if (randomTile) await animateSpawn([randomTile]);
+
+      evaluateMoveAchievements(direction, events, emptyBefore, emptyAfterResolution);
 
       moves += 1;
       movesEl.textContent = String(moves);
@@ -3130,6 +3199,7 @@
       gameWon = false;
       gameStage = 0;
       unlockedTier = 0;
+      runAchievementState = createDefaultRunAchievementState();
       clearMessage();
       StageStatistics.reset();
 
