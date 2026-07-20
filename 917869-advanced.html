@@ -865,6 +865,70 @@
 
     .settings-modal.active { display: flex; }
 
+    .startup-disclaimer {
+      z-index: 10060;
+    }
+
+    .startup-disclaimer-panel {
+      width: min(680px, 100%);
+      max-height: min(88vh, 860px);
+      overflow-y: auto;
+    }
+
+    .startup-disclaimer-copy {
+      color: #d7e2ff;
+      font-size: 14px;
+      line-height: 1.8;
+    }
+
+    .startup-disclaimer-copy h3 {
+      margin: 16px 0 8px;
+      color: #fff7cc;
+      font-size: 18px;
+    }
+
+    .startup-disclaimer-copy p,
+    .startup-disclaimer-copy ol,
+    .startup-disclaimer-copy li {
+      margin: 0;
+    }
+
+    .startup-disclaimer-copy ol {
+      padding-left: 20px;
+      display: grid;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .startup-disclaimer-copy strong {
+      color: #ffffff;
+    }
+
+    .startup-disclaimer-note {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: #fde68a;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .startup-disclaimer-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .startup-disclaimer-actions .btn[disabled] {
+      cursor: not-allowed;
+      opacity: 0.55;
+      filter: saturate(0.8);
+      transform: none;
+    }
+
     .settings-panel {
       width: min(420px, 100%);
       border-radius: 18px;
@@ -1571,6 +1635,28 @@
 
   <div id="devEditorMenu" class="dev-editor-menu"></div>
 
+  <div id="startupDisclaimerModal" class="settings-modal startup-disclaimer active" aria-hidden="false">
+    <div class="settings-panel startup-disclaimer-panel" role="dialog" aria-modal="true" aria-labelledby="startupDisclaimerTitle">
+      <div class="settings-title" id="startupDisclaimerTitle">欢迎来到《917869小游戏》！</div>
+      <div class="startup-disclaimer-copy">
+        <p>在您按下“开始”之前，请阅读以下“用户协议”：</p>
+        <h3>免责声明</h3>
+        <p>欢迎体验《917869小游戏》。为保障您的权益，请在进入游戏前仔细阅读本声明：</p>
+        <ol>
+          <li>本游戏为独立开发的娱乐作品，所有内容均为虚构，仅供休闲娱乐。</li>
+          <li>游戏中出现的人物、名称、事件、组织等如有与现实相似之处，纯属巧合。<strong>请勿将游戏内容与现实人物、事件进行关联或对号入座。</strong></li>
+          <li><strong>请勿对游戏内容进行过度解读。</strong> 本作不包含任何现实隐喻、政治暗示或阴谋论。开发者不对玩家基于游戏内容产生的任何主观联想、推测或引申含义负责。</li>
+          <li>本游戏旨在提供轻松的娱乐体验。请合理安排游戏时间，避免沉迷。因游玩本游戏引起的任何现实纠纷、心理不适或财产损失，开发者不承担任何法律责任。</li>
+        </ol>
+      </div>
+      <div class="startup-disclaimer-note" id="startupDisclaimerNote">继续游戏即视为您已阅读、理解并同意本声明的全部内容。请先完整阅读 5 秒。</div>
+      <div class="startup-disclaimer-actions">
+        <button id="acceptDisclaimerBtn" class="btn small" type="button" disabled>同意并进入游戏（5）</button>
+        <button id="exitDisclaimerBtn" class="btn secondary small" type="button">退出游戏</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const DEV_MODE = false;
 
@@ -1870,16 +1956,23 @@
     const leaderboardModal = document.getElementById('leaderboardModal');
     const leaderboardContent = document.getElementById('leaderboardContent');
     const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
+    const startupDisclaimerModal = document.getElementById('startupDisclaimerModal');
+    const startupDisclaimerNote = document.getElementById('startupDisclaimerNote');
+    const acceptDisclaimerBtn = document.getElementById('acceptDisclaimerBtn');
+    const exitDisclaimerBtn = document.getElementById('exitDisclaimerBtn');
 
     const SAVE_STORAGE_KEY = '917869-save';
     const AUTO_SAVE_STORAGE_KEY = '917869-autoSave';
     const PERFORMANCE_MODE_STORAGE_KEY = '917869-performanceMode';
     const ACHIEVEMENT_STORAGE_KEY = '917869-achievements';
     const SAVE_MAGIC = '917869:v1:';
+    const STARTUP_DISCLAIMER_SECONDS = 5;
 
     let autoSaveEnabled = true;
     let performanceMode = false;
     let gameState = null;
+    let startupDisclaimerTimer = null;
+    let startupBootResolved = false;
 
     function loadReadAnnouncementIds() {
       try {
@@ -1902,6 +1995,80 @@
       const count = getUnreadAnnouncements().length;
       if (announcementsBtn) announcementsBtn.classList.toggle('has-unread', count > 0);
       if (announcementUnreadBadge) announcementUnreadBadge.textContent = count > 9 ? '9+' : String(count);
+    }
+
+    function setDisclaimerButtonsEnabled(enabled, secondsLeft = 0) {
+      const suffix = enabled ? '' : `（${secondsLeft}）`;
+      if (acceptDisclaimerBtn) {
+        acceptDisclaimerBtn.disabled = !enabled;
+        acceptDisclaimerBtn.textContent = `同意并进入游戏${suffix}`;
+      }
+    }
+
+    function hideStartupDisclaimer() {
+      if (!startupDisclaimerModal) return;
+      startupDisclaimerModal.classList.remove('active');
+      startupDisclaimerModal.setAttribute('aria-hidden', 'true');
+    }
+
+    function exitGameFromDisclaimer() {
+      hideStartupDisclaimer();
+      document.body.innerHTML = '<div style="min-height:100vh;display:grid;place-items:center;padding:24px;color:#f5f7ff;text-align:center;"><div><h1 style="margin-bottom:12px;font-size:28px;">您已退出《917869小游戏》</h1><p style="color:#b6bee0;font-size:15px;line-height:1.8;">感谢您的阅读。如需继续体验，请重新打开本页面。</p></div></div>';
+      try { window.close(); } catch (_) {}
+    }
+
+    function showStartupDisclaimer() {
+      return new Promise((resolve) => {
+        if (!startupDisclaimerModal) {
+          resolve('accept');
+          return;
+        }
+
+        let remaining = STARTUP_DISCLAIMER_SECONDS;
+        startupBootResolved = false;
+        startupDisclaimerModal.classList.add('active');
+        startupDisclaimerModal.setAttribute('aria-hidden', 'false');
+        if (startupDisclaimerNote) startupDisclaimerNote.textContent = '继续游戏即视为您已阅读、理解并同意本声明的全部内容。请先完整阅读 5 秒。';
+        setDisclaimerButtonsEnabled(false, remaining);
+
+        const cleanup = () => {
+          if (startupDisclaimerTimer) {
+            clearInterval(startupDisclaimerTimer);
+            startupDisclaimerTimer = null;
+          }
+        };
+
+        const finish = (action) => {
+          if (startupBootResolved) return;
+          startupBootResolved = true;
+          cleanup();
+          resolve(action);
+        };
+
+        const accept = () => {
+          hideStartupDisclaimer();
+          finish('accept');
+        };
+
+        const exit = () => {
+          finish('exit');
+          exitGameFromDisclaimer();
+        };
+
+        acceptDisclaimerBtn.onclick = accept;
+        exitDisclaimerBtn.onclick = exit;
+
+        startupDisclaimerTimer = setInterval(() => {
+          remaining -= 1;
+          if (remaining > 0) {
+            setDisclaimerButtonsEnabled(false, remaining);
+            return;
+          }
+          cleanup();
+          setDisclaimerButtonsEnabled(true, 0);
+          if (startupDisclaimerNote) startupDisclaimerNote.textContent = '继续游戏即视为您已阅读、理解并同意本声明的全部内容。现在可以进入游戏，或选择退出。';
+        }, 1000);
+      });
     }
 
     function escapeAnnouncementHtml(value) {
@@ -3776,7 +3943,16 @@
       isAnimating = false;
     }
 
+    const DISCLAIMER_SEEN_KEY = '917869-disclaimerSeen';
+
     async function boot() {
+      const disclaimerSeen = localStorage.getItem(DISCLAIMER_SEEN_KEY);
+      if (!disclaimerSeen) {
+        const disclaimerAction = await showStartupDisclaimer();
+        if (disclaimerAction === 'exit') return;
+        try { localStorage.setItem(DISCLAIMER_SEEN_KEY, '1'); } catch (_) {}
+      }
+
       const persistedPerformanceMode = loadPersistedPerformanceModeSetting();
       setPerformanceMode(persistedPerformanceMode.value, false, false);
       initGridVisual();
