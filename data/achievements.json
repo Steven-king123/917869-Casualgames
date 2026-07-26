@@ -1,0 +1,7 @@
+[
+  {"id":"stage_1","name":"阶段学徒","description":"完成 Tier 0 目标序列"},
+  {"id":"stage_2","name":"进阶稳定","description":"完成 Tier 1 目标序列"},
+  {"id":"ascended","name":"最终升华","description":"完成全部三个阶段","hidden":true},
+  {"id":"persistent","name":"坚持不懈","description":"单局完成 50 次有效移动"},
+  {"id":"score_5000","name":"高分选手","description":"单局达到 5000 分"}
+]
