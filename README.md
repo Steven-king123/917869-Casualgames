@@ -1,4 +1,4 @@
-# 917869（Godot 4 原生版）
+# 917869（Godot 4 原生版 未完善，建议游玩html版）
 
 一款基于 **Godot 4.x + GDScript** 重构的 4×4 数字合成游戏。项目采用原生 `Control` UI，不依赖 WebView，目标平台为 Windows 和 Android。仓库中的 HTML 文件仅保留为原版行为参考。
 
