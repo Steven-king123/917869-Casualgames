@@ -1,7 +1,0 @@
-[
-  {
-    "version":"1.0.0-godot",
-    "title":"Godot 原生版",
-    "body":"项目已迁移到 Godot 4.x，支持 Windows 键盘与 Android 触屏滑动。"
-  }
-]
