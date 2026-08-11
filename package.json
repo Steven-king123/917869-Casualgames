@@ -1,0 +1,7 @@
+{
+  "name": "917869-advanced",
+  "private": true,
+  "scripts": {
+    "test": "node scripts/validate-build.js"
+  }
+}
