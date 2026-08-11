@@ -358,6 +358,16 @@
             summary: '交流反馈 Q 群：1061312672',
             content: '交流反馈 Q 群：1061312672'
           },
+          'announcement-1.1.0': {
+            title: '1.1.0 版本更新公告',
+            summary: '新增历史记录与更准确的未完成对局评分',
+            content: `本次更新新增历史记录功能：
+- 可查看已通关、游戏结束和中途放弃的对局
+- 每条记录保存独立的棋局归档码
+- 支持复制归档码和恢复历史对局
+- 游戏结束和中途放弃使用不同颜色区分
+- 未完成阶段不参与历史记录评分，没有完成阶段时显示“未结算”`
+          },
           'announcement-0.6.5': {
             title: '0.6.5 版本更新公告',
             summary: '新增性能模式',
@@ -851,6 +861,16 @@
             summary: 'Feedback QQ Group: 1061312672',
             content: 'Feedback QQ Group: 1061312672'
           },
+          'announcement-1.1.0': {
+            title: 'v1.1.0 Update Notice',
+            summary: 'Added game history and more accurate incomplete-run scoring',
+            content: `This update adds game history:
+- View completed, game-over and abandoned runs
+- Keep an independent board archive code for each record
+- Copy archive codes and restore historical games
+- Use different colors for game over and abandoned runs
+- Exclude unfinished stages from history scoring; runs with no completed stage show “Not settled”`
+          },
           'announcement-0.6.5': {
             title: 'v0.6.5 Update Notice',
             summary: 'Added Performance Mode',
@@ -1177,6 +1197,7 @@
     const ANNOUNCEMENTS = [
       { id: 'announcement-github-repo', type: 'notice', pinned: true },
       { id: 'announcement-community-group', type: 'notice', pinned: true },
+      { id: 'announcement-1.1.0', version: '1.1.0', date: '2026-08-11', type: 'update' },
       { id: 'announcement-0.6.5', version: '0.6.5', date: '2026-07-12', type: 'update' },
       { id: 'announcement-0.6.0', version: '0.6.0', date: '2026-07-12', type: 'update' },
       { id: 'announcement-0.5.0-changelog', version: '0.5.0', date: '2026-07-12', type: 'update' }
