@@ -195,6 +195,7 @@
         TUTORIAL_SEEN_KEY,
         ANNOUNCEMENT_READ_KEY,
         LEADERBOARD_STORAGE_KEY,
+        HISTORY_STORAGE_KEY,
         DISCLAIMER_SEEN_KEY
       ]);
       try {

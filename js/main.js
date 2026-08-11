@@ -91,6 +91,11 @@
           return;
         }
 
+        if (historyResumePending) {
+          historyResumePending = false;
+          historyRecorded = false;
+        }
+
         const emptyAfterResolution = countBoardEmpties();
         const randomTile = addRandomTile();
         if (randomTile) await animateSpawn([randomTile]);
@@ -145,12 +150,15 @@
     async function newGame() {
       if (isAnimating || tutorialActive || settlementActive || easterEggDiscoveryActive) return;
 
+      History.recordCurrentGame('abandoned');
       isAnimating = true;
       try {
         hideSettlement();
         gamePaused = false;
         elapsedBeforePause = 0;
         finalElapsedSeconds = null;
+        historyRecorded = false;
+        historyResumePending = false;
         resetSpawnHistory();
         setPauseVisible(false);
         stopTimer();

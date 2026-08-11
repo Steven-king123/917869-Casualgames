@@ -242,6 +242,33 @@
         noLocalRecords: '完成挑战后，本地成绩会显示在这里。',
         stepsUnit: '步',
 
+        // 历史记录
+        ariaViewHistory: '查看历史记录',
+        historyTitle: '🕘 历史记录',
+        historyIntro: '每局会保存最终棋局归档码。复制后可以分享，恢复会覆盖当前棋局。',
+        historyEmpty: '还没有历史记录。完成、失败或开始新游戏后，记录会显示在这里。',
+        historyCompleted: '已通关',
+        historyGameOver: '游戏结束',
+        historyAbandoned: '中途放弃',
+        historyTotalTime: '总用时：',
+        historyTotalMoves: '总步数：',
+        historyTotalScore: '总评分：',
+        historyCompletedStageScore: '已完成阶段平均分：',
+        historyScoreUnsettled: '未结算',
+        historyNoCompletedStageData: '暂无已完成阶段评分',
+        historyEasterEgg: '{value} 彩蛋路线',
+        historyCopy: '复制归档码',
+        historyRestore: '恢复此局',
+        historyCopySuccess: '历史归档码已复制',
+        historyCopyFailed: '复制失败，请检查浏览器权限',
+        historyRestoreConfirmTitle: '⚠️ 恢复历史记录？',
+        historyRestoreConfirmBody: '恢复后会覆盖当前棋盘和进度，当前未保存的变化将丢失。',
+        historyRestoreCancel: '取消',
+        historyRestoreConfirm: '确认恢复',
+        historyRestoreSuccess: '历史对局已恢复',
+        historyRestoreFailed: '恢复失败，历史归档码可能已损坏',
+        historyArchiveFormatError: '历史归档码格式不正确',
+
         // 新手指引
         tutorialBtn: '新手指引',
         tutorialSkip: '跳过指引',
@@ -264,7 +291,8 @@
         resetItem3: '本地排行榜成绩',
         resetItem4: '阶段统计与用时记录',
         resetItem5: '公告已读状态、新手指引记录',
-        resetItem6: '画质模式、自动保存等全部设置',
+        resetItem6: '历史记录与历史归档码',
+        resetItem7: '画质模式、自动保存等全部设置',
         resetNote: '只是想重开一局？请改用棋盘下方的「新游戏」。<br />重置后页面会重新载入，并再次显示免责声明与新手指引。',
         resetCancel: '取消',
         resetConfirm: '确认重置',
@@ -707,6 +735,33 @@
         noLocalRecords: 'Your records will appear here after completing challenges.',
         stepsUnit: 'steps',
 
+        // History
+        ariaViewHistory: 'View game history',
+        historyTitle: '🕘 Game History',
+        historyIntro: 'Each run keeps a final board archive. Copy it to share, or restore it to replace the current game.',
+        historyEmpty: 'No history yet. Records appear after a clear, game over, or starting a new game.',
+        historyCompleted: 'Completed',
+        historyGameOver: 'Game Over',
+        historyAbandoned: 'Abandoned',
+        historyTotalTime: 'Total time: ',
+        historyTotalMoves: 'Total moves: ',
+        historyTotalScore: 'Total score: ',
+        historyCompletedStageScore: 'Completed-stage average: ',
+        historyScoreUnsettled: 'Not settled',
+        historyNoCompletedStageData: 'No completed-stage score',
+        historyEasterEgg: '{value} Easter Egg Route',
+        historyCopy: 'Copy Archive',
+        historyRestore: 'Restore Game',
+        historyCopySuccess: 'History archive copied',
+        historyCopyFailed: 'Copy failed, please check browser permissions',
+        historyRestoreConfirmTitle: '⚠️ Restore History?',
+        historyRestoreConfirmBody: 'This will replace the current board and progress. Unsaved changes will be lost.',
+        historyRestoreCancel: 'Cancel',
+        historyRestoreConfirm: 'Restore',
+        historyRestoreSuccess: 'Historical game restored',
+        historyRestoreFailed: 'Restore failed; the history archive may be damaged',
+        historyArchiveFormatError: 'History archive format is incorrect',
+
         // Tutorial
         tutorialBtn: 'Tutorial',
         tutorialSkip: 'Skip',
@@ -729,7 +784,8 @@
         resetItem3: 'Local leaderboard scores',
         resetItem4: 'Stage statistics and time records',
         resetItem5: 'Announcement read status, tutorial records',
-        resetItem6: 'Quality mode, auto-save and all settings',
+        resetItem6: 'Game history and historical archive codes',
+        resetItem7: 'Quality mode, auto-save and all settings',
         resetNote: 'Just want to start a new game? Please use "New Game" below the board instead.<br />After reset, the page will reload and show the disclaimer and tutorial again.',
         resetCancel: 'Cancel',
         resetConfirm: 'Confirm Reset',
@@ -1001,6 +1057,7 @@
       if (achievementsModal?.classList.contains('active')) renderAchievementList();
       if (announcementsModal?.classList.contains('active')) renderAnnouncementList();
       if (leaderboardModal?.classList.contains('active')) Leaderboard.render();
+      if (historyModal?.classList.contains('active')) History.render();
       if (easterEggsModal?.classList.contains('active')) renderEasterEggList();
       if (easterEggDiscoveryActive && easterEggDiscoveryId) renderEasterEggDiscovery(easterEggDiscoveryId);
       if (tutorialActive) renderTutorialCard();

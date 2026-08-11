@@ -694,6 +694,10 @@
         moves,
         timer: elapsed,
         finalTime: finalElapsedSeconds,
+        historyResult: historyRecorded
+          ? (gameWon ? 'completed' : gameOver ? 'game-over' : 'abandoned')
+          : null,
+        historyResumePending,
         stageStats: StageStatistics ? deepClone(StageStatistics.exportData()) : (deepClone(gameState?.stageStats) || {}),
         achievements: deepClone(achievementState),
         easterEggs: deepClone(easterEggState),

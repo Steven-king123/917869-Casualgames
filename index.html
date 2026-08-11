@@ -186,6 +186,7 @@
   <button id="announcementsBtn" class="settings-btn announcements-btn" type="button" data-i18n-attr-aria-label="ariaViewAnnouncements" aria-label="查看公告">📢<span id="announcementUnreadBadge" class="announcement-unread-badge" aria-hidden="true"></span></button>
   <button id="achievementsBtn" class="settings-btn achievements-btn" type="button" data-i18n-attr-aria-label="ariaViewAchievements" aria-label="查看成就">🏆</button>
   <button id="leaderboardBtn" class="settings-btn leaderboard-btn" type="button" data-i18n-attr-aria-label="ariaViewLeaderboard" aria-label="查看排行榜">🏅</button>
+  <button id="historyBtn" class="settings-btn history-btn" type="button" data-i18n-attr-aria-label="ariaViewHistory" aria-label="查看历史记录">🕘</button>
   <button id="tutorialBtn" class="settings-btn tutorial-btn" type="button" data-i18n-attr-aria-label="tutorialBtn" aria-label="新手指引">🎓</button>
   <button id="easterEggsBtn" class="settings-btn easter-eggs-btn" type="button" data-i18n-attr-aria-label="ariaViewEasterEggs" aria-label="查看彩蛋结局" hidden>🥚</button>
   
@@ -293,7 +294,8 @@
           <li data-i18n="resetItem3">本地排行榜成绩</li>
           <li data-i18n="resetItem4">阶段统计与用时记录</li>
           <li data-i18n="resetItem5">公告已读状态、新手指引记录</li>
-          <li data-i18n="resetItem6">画质模式、自动保存等全部设置</li>
+          <li data-i18n="resetItem6">历史记录与历史归档码</li>
+          <li data-i18n="resetItem7">画质模式、自动保存等全部设置</li>
         </ul>
         <div class="reset-warning-note" data-i18n-html="resetNote">只是想重开一局？请改用棋盘下方的「新游戏」。<br />重置后页面会重新载入，并再次显示免责声明与新手指引。</div>
       </div>
@@ -337,6 +339,27 @@
         <button class="leaderboard-subtab" type="button" data-leaderboard-metric="time" data-i18n="timeRank">时间榜</button>
       </div>
       <div id="leaderboardContent"></div>
+    </div>
+  </div>
+
+  <div id="historyModal" class="settings-modal" aria-hidden="true">
+    <div class="settings-panel history-panel" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+      <button id="closeHistoryBtn" class="modal-close-btn" type="button" data-i18n-attr-aria-label="close" aria-label="关闭">&times;</button>
+      <div class="settings-title" id="historyTitle" data-i18n="historyTitle">🕘 历史记录</div>
+      <div class="settings-desc history-intro" data-i18n="historyIntro">每局会保存最终棋局归档码。复制后可以分享，恢复会覆盖当前棋局。</div>
+      <div id="historyList" class="history-list"></div>
+      <div id="historyStatus" class="settings-status" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <div id="historyRestoreConfirmModal" class="settings-modal history-restore-confirm-modal" aria-hidden="true">
+    <div class="settings-panel" role="alertdialog" aria-modal="true" aria-labelledby="historyRestoreConfirmTitle" aria-describedby="historyRestoreConfirmBody">
+      <div class="settings-title" id="historyRestoreConfirmTitle" data-i18n="historyRestoreConfirmTitle">⚠️ 恢复历史记录？</div>
+      <div id="historyRestoreConfirmBody" class="reset-warning" data-i18n="historyRestoreConfirmBody">恢复后会覆盖当前棋盘和进度，当前未保存的变化将丢失。</div>
+      <div class="settings-actions">
+        <button id="cancelHistoryRestoreBtn" class="btn secondary small" type="button" data-i18n="historyRestoreCancel">取消</button>
+        <button id="confirmHistoryRestoreBtn" class="btn small" type="button" data-i18n="historyRestoreConfirm">确认恢复</button>
+      </div>
     </div>
   </div>
 

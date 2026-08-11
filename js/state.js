@@ -21,6 +21,10 @@
     let finalElapsedSeconds = null;
     let gameStage = 0;
     let unlockedTier = 0;
+    // 当前对局是否已经写入历史，避免结算、失败和重开重复生成记录。
+    let historyRecorded = false;
+    // 恢复“中途放弃”记录后，第一次有效移动才开启新一轮历史记录。
+    let historyResumePending = false;
     let lastSpawnValue = null;
     let spawnValueStreak = 0;
 
@@ -112,6 +116,15 @@
     const leaderboardModal = document.getElementById('leaderboardModal');
     const leaderboardContent = document.getElementById('leaderboardContent');
     const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
+    const historyBtn = document.getElementById('historyBtn');
+    const historyModal = document.getElementById('historyModal');
+    const historyList = document.getElementById('historyList');
+    const historyStatus = document.getElementById('historyStatus');
+    const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+    const historyRestoreConfirmModal = document.getElementById('historyRestoreConfirmModal');
+    const historyRestoreConfirmBody = document.getElementById('historyRestoreConfirmBody');
+    const cancelHistoryRestoreBtn = document.getElementById('cancelHistoryRestoreBtn');
+    const confirmHistoryRestoreBtn = document.getElementById('confirmHistoryRestoreBtn');
     const stageGoal1 = document.getElementById('stageGoal1');
     const stageGoal2 = document.getElementById('stageGoal2');
     const stageGoal3 = document.getElementById('stageGoal3');
@@ -334,6 +347,9 @@
     const PERF_HINT_SHOWN_KEY = '917869-perfHintShown';
     const TUTORIAL_SEEN_KEY = '917869-tutorialSeen';
     const SAVE_MAGIC = '917869:v1:';
+    const HISTORY_STORAGE_KEY = '917869-history';
+    const HISTORY_SAVE_MAGIC = '917869:history:v1:';
+    const HISTORY_LIMIT = 50;
     const STARTUP_DISCLAIMER_SECONDS = 5;
 
     // 低帧率检测：采样窗口内平均帧率低于阈值即提示一次。

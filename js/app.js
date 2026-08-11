@@ -242,6 +242,33 @@
         noLocalRecords: '完成挑战后，本地成绩会显示在这里。',
         stepsUnit: '步',
 
+        // 历史记录
+        ariaViewHistory: '查看历史记录',
+        historyTitle: '🕘 历史记录',
+        historyIntro: '每局会保存最终棋局归档码。复制后可以分享，恢复会覆盖当前棋局。',
+        historyEmpty: '还没有历史记录。完成、失败或开始新游戏后，记录会显示在这里。',
+        historyCompleted: '已通关',
+        historyGameOver: '游戏结束',
+        historyAbandoned: '中途放弃',
+        historyTotalTime: '总用时：',
+        historyTotalMoves: '总步数：',
+        historyTotalScore: '总评分：',
+        historyCompletedStageScore: '已完成阶段平均分：',
+        historyScoreUnsettled: '未结算',
+        historyNoCompletedStageData: '暂无已完成阶段评分',
+        historyEasterEgg: '{value} 彩蛋路线',
+        historyCopy: '复制归档码',
+        historyRestore: '恢复此局',
+        historyCopySuccess: '历史归档码已复制',
+        historyCopyFailed: '复制失败，请检查浏览器权限',
+        historyRestoreConfirmTitle: '⚠️ 恢复历史记录？',
+        historyRestoreConfirmBody: '恢复后会覆盖当前棋盘和进度，当前未保存的变化将丢失。',
+        historyRestoreCancel: '取消',
+        historyRestoreConfirm: '确认恢复',
+        historyRestoreSuccess: '历史对局已恢复',
+        historyRestoreFailed: '恢复失败，历史归档码可能已损坏',
+        historyArchiveFormatError: '历史归档码格式不正确',
+
         // 新手指引
         tutorialBtn: '新手指引',
         tutorialSkip: '跳过指引',
@@ -264,7 +291,8 @@
         resetItem3: '本地排行榜成绩',
         resetItem4: '阶段统计与用时记录',
         resetItem5: '公告已读状态、新手指引记录',
-        resetItem6: '画质模式、自动保存等全部设置',
+        resetItem6: '历史记录与历史归档码',
+        resetItem7: '画质模式、自动保存等全部设置',
         resetNote: '只是想重开一局？请改用棋盘下方的「新游戏」。<br />重置后页面会重新载入，并再次显示免责声明与新手指引。',
         resetCancel: '取消',
         resetConfirm: '确认重置',
@@ -707,6 +735,33 @@
         noLocalRecords: 'Your records will appear here after completing challenges.',
         stepsUnit: 'steps',
 
+        // History
+        ariaViewHistory: 'View game history',
+        historyTitle: '🕘 Game History',
+        historyIntro: 'Each run keeps a final board archive. Copy it to share, or restore it to replace the current game.',
+        historyEmpty: 'No history yet. Records appear after a clear, game over, or starting a new game.',
+        historyCompleted: 'Completed',
+        historyGameOver: 'Game Over',
+        historyAbandoned: 'Abandoned',
+        historyTotalTime: 'Total time: ',
+        historyTotalMoves: 'Total moves: ',
+        historyTotalScore: 'Total score: ',
+        historyCompletedStageScore: 'Completed-stage average: ',
+        historyScoreUnsettled: 'Not settled',
+        historyNoCompletedStageData: 'No completed-stage score',
+        historyEasterEgg: '{value} Easter Egg Route',
+        historyCopy: 'Copy Archive',
+        historyRestore: 'Restore Game',
+        historyCopySuccess: 'History archive copied',
+        historyCopyFailed: 'Copy failed, please check browser permissions',
+        historyRestoreConfirmTitle: '⚠️ Restore History?',
+        historyRestoreConfirmBody: 'This will replace the current board and progress. Unsaved changes will be lost.',
+        historyRestoreCancel: 'Cancel',
+        historyRestoreConfirm: 'Restore',
+        historyRestoreSuccess: 'Historical game restored',
+        historyRestoreFailed: 'Restore failed; the history archive may be damaged',
+        historyArchiveFormatError: 'History archive format is incorrect',
+
         // Tutorial
         tutorialBtn: 'Tutorial',
         tutorialSkip: 'Skip',
@@ -729,7 +784,8 @@
         resetItem3: 'Local leaderboard scores',
         resetItem4: 'Stage statistics and time records',
         resetItem5: 'Announcement read status, tutorial records',
-        resetItem6: 'Quality mode, auto-save and all settings',
+        resetItem6: 'Game history and historical archive codes',
+        resetItem7: 'Quality mode, auto-save and all settings',
         resetNote: 'Just want to start a new game? Please use "New Game" below the board instead.<br />After reset, the page will reload and show the disclaimer and tutorial again.',
         resetCancel: 'Cancel',
         resetConfirm: 'Confirm Reset',
@@ -1001,6 +1057,7 @@
       if (achievementsModal?.classList.contains('active')) renderAchievementList();
       if (announcementsModal?.classList.contains('active')) renderAnnouncementList();
       if (leaderboardModal?.classList.contains('active')) Leaderboard.render();
+      if (historyModal?.classList.contains('active')) History.render();
       if (easterEggsModal?.classList.contains('active')) renderEasterEggList();
       if (easterEggDiscoveryActive && easterEggDiscoveryId) renderEasterEggDiscovery(easterEggDiscoveryId);
       if (tutorialActive) renderTutorialCard();
@@ -1213,6 +1270,10 @@
     let finalElapsedSeconds = null;
     let gameStage = 0;
     let unlockedTier = 0;
+    // 当前对局是否已经写入历史，避免结算、失败和重开重复生成记录。
+    let historyRecorded = false;
+    // 恢复“中途放弃”记录后，第一次有效移动才开启新一轮历史记录。
+    let historyResumePending = false;
     let lastSpawnValue = null;
     let spawnValueStreak = 0;
 
@@ -1304,6 +1365,15 @@
     const leaderboardModal = document.getElementById('leaderboardModal');
     const leaderboardContent = document.getElementById('leaderboardContent');
     const closeLeaderboardBtn = document.getElementById('closeLeaderboardBtn');
+    const historyBtn = document.getElementById('historyBtn');
+    const historyModal = document.getElementById('historyModal');
+    const historyList = document.getElementById('historyList');
+    const historyStatus = document.getElementById('historyStatus');
+    const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+    const historyRestoreConfirmModal = document.getElementById('historyRestoreConfirmModal');
+    const historyRestoreConfirmBody = document.getElementById('historyRestoreConfirmBody');
+    const cancelHistoryRestoreBtn = document.getElementById('cancelHistoryRestoreBtn');
+    const confirmHistoryRestoreBtn = document.getElementById('confirmHistoryRestoreBtn');
     const stageGoal1 = document.getElementById('stageGoal1');
     const stageGoal2 = document.getElementById('stageGoal2');
     const stageGoal3 = document.getElementById('stageGoal3');
@@ -1526,6 +1596,9 @@
     const PERF_HINT_SHOWN_KEY = '917869-perfHintShown';
     const TUTORIAL_SEEN_KEY = '917869-tutorialSeen';
     const SAVE_MAGIC = '917869:v1:';
+    const HISTORY_STORAGE_KEY = '917869-history';
+    const HISTORY_SAVE_MAGIC = '917869:history:v1:';
+    const HISTORY_LIMIT = 50;
     const STARTUP_DISCLAIMER_SECONDS = 5;
 
     // 低帧率检测：采样窗口内平均帧率低于阈值即提示一次。
@@ -2259,6 +2332,10 @@
         moves,
         timer: elapsed,
         finalTime: finalElapsedSeconds,
+        historyResult: historyRecorded
+          ? (gameWon ? 'completed' : gameOver ? 'game-over' : 'abandoned')
+          : null,
+        historyResumePending,
         stageStats: StageStatistics ? deepClone(StageStatistics.exportData()) : (deepClone(gameState?.stageStats) || {}),
         achievements: deepClone(achievementState),
         easterEggs: deepClone(easterEggState),
@@ -2668,6 +2745,7 @@
         TUTORIAL_SEEN_KEY,
         ANNOUNCEMENT_READ_KEY,
         LEADERBOARD_STORAGE_KEY,
+        HISTORY_STORAGE_KEY,
         DISCLAIMER_SEEN_KEY
       ]);
       try {
@@ -2737,6 +2815,10 @@
       return SAVE_MAGIC + encodeUtf8Base64(JSON.stringify(state));
     }
 
+    function serializeHistoryState(state) {
+      return HISTORY_SAVE_MAGIC + encodeUtf8Base64(JSON.stringify(state));
+    }
+
     function serializeGameState({ includeAppearance = true } = {}) {
       const state = getGameState({ includeAppearance });
       if (includeAppearance) gameState = state;
@@ -2747,6 +2829,16 @@
       const normalized = normalizeSaveString(saveText);
       if (!normalized.startsWith(SAVE_MAGIC)) throw new Error(t('archiveFormatError'));
       const payload = normalized.slice(SAVE_MAGIC.length);
+      const json = decodeUtf8Base64(payload);
+      const parsed = JSON.parse(json);
+      if (!parsed || typeof parsed !== 'object') throw new Error(t('archiveContentInvalid'));
+      return parsed;
+    }
+
+    function parseHistorySave(saveText) {
+      const normalized = normalizeSaveString(saveText);
+      if (!normalized.startsWith(HISTORY_SAVE_MAGIC)) throw new Error(t('historyArchiveFormatError'));
+      const payload = normalized.slice(HISTORY_SAVE_MAGIC.length);
       const json = decodeUtf8Base64(payload);
       const parsed = JSON.parse(json);
       if (!parsed || typeof parsed !== 'object') throw new Error(t('archiveContentInvalid'));
@@ -2788,6 +2880,8 @@
         finalTime: raw.finalTime !== null && raw.finalTime !== undefined && Number.isFinite(Number(raw.finalTime))
           ? Math.max(0, Number(raw.finalTime))
           : null,
+        historyResult: ['completed', 'game-over', 'abandoned'].includes(raw.historyResult) ? raw.historyResult : null,
+        historyResumePending: raw.historyResumePending === true,
         stageStats: (raw.stageStats && typeof raw.stageStats === 'object' && !Array.isArray(raw.stageStats)) ? raw.stageStats : {},
         achievements: normalizeAchievementState(raw.achievements),
         easterEggs: normalizeEasterEggState(raw.easterEggs),
@@ -2852,6 +2946,8 @@
       moves = state.moves;
       gameOver = !!state.game.over;
       gameWon = !!state.game.won;
+      historyRecorded = !!(state.historyResult || gameOver || gameWon);
+      historyResumePending = !!state.historyResumePending;
       finalElapsedSeconds = state.finalTime;
       hideSettlement();
       runAchievementState = createDefaultRunAchievementState();
@@ -2897,6 +2993,247 @@
       return state;
     }
 
+    const History = (() => {
+      function escapeHtml(value) {
+        const node = document.createElement('span');
+        node.textContent = String(value ?? '');
+        return node.innerHTML;
+      }
+
+      function normalize(record) {
+        if (!record || typeof record !== 'object' || !['completed', 'game-over', 'abandoned'].includes(record.result)) return null;
+        if (typeof record.archiveCode !== 'string' || !record.archiveCode.startsWith(HISTORY_SAVE_MAGIC)) return null;
+        const completedAt = Math.max(0, Number(record.completedAt) || 0);
+        if (!completedAt) return null;
+        const currentStage = Math.max(0, Math.min(2, Math.floor(Number(record.stage) || 0)));
+        const hasCompletionFlags = Array.isArray(record.stageStats)
+          && record.stageStats.some((stage) => stage && Object.prototype.hasOwnProperty.call(stage, 'completed'));
+        const stageStats = Array.isArray(record.stageStats) ? record.stageStats.slice(0, 3).map((stage, index) => {
+          const completed = hasCompletionFlags
+            ? stage?.completed === true
+            : record.result === 'completed'
+              ? Number(stage?.time) > 0 || Number(stage?.moves) > 0
+              : index < currentStage;
+          return {
+          number: index + 1,
+          completed,
+          time: Math.max(0, Math.floor(Number(stage?.time) || 0)),
+          moves: Math.max(0, Math.floor(Number(stage?.moves) || 0)),
+          score: completed && Number.isFinite(Number(stage?.score))
+            ? Math.max(0, Math.min(100, Math.floor(Number(stage.score))))
+            : null
+          };
+        }) : [];
+        const completedScores = stageStats
+          .filter((stage) => stage.completed && Number.isFinite(stage.score))
+          .map((stage) => stage.score);
+        const totalScore = completedScores.length
+          ? Math.round(completedScores.reduce((sum, score) => sum + score, 0) / completedScores.length)
+          : null;
+        return {
+          id: typeof record.id === 'string' ? record.id : `${completedAt}-${Math.random().toString(16).slice(2)}`,
+          result: record.result,
+          completedAt,
+          moves: Math.max(0, Math.floor(Number(record.moves) || 0)),
+          totalTime: Math.max(0, Math.floor(Number(record.totalTime) || 0)),
+          totalScore,
+          stage: currentStage,
+          easterEggId: EASTER_EGG_IDS.has(String(record.easterEggId)) ? String(record.easterEggId) : null,
+          stageStats,
+          archiveCode: record.archiveCode
+        };
+      }
+
+      function readAll() {
+        try {
+          const raw = JSON.parse(localStorage.getItem(HISTORY_STORAGE_KEY) || '[]');
+          if (!Array.isArray(raw)) return [];
+          const records = raw.map(normalize).filter(Boolean)
+            .sort((a, b) => b.completedAt - a.completedAt)
+            .slice(0, HISTORY_LIMIT);
+          if (records.length !== raw.length) {
+            try { localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(records)); } catch (_) {}
+          }
+          return records;
+        } catch (_) {
+          return [];
+        }
+      }
+
+      function saveAll(records) {
+        try {
+          localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(records.slice(0, HISTORY_LIMIT)));
+          return true;
+        } catch (error) {
+          console.warn('保存历史记录失败', error);
+          return false;
+        }
+      }
+
+      function createArchive(result) {
+        const current = getGameState({ includeAppearance: false });
+        const totalTime = Math.max(0, Math.floor(Number(result === 'completed' || result === 'game-over' ? finalElapsedSeconds : currentElapsedSeconds()) || 0));
+        return serializeHistoryState({
+          version: 1,
+          board: current.board,
+          stage: current.stage,
+          unlockedTier: current.unlockedTier,
+          easterEggId: current.easterEggId,
+          easterEggDiscoveryId: current.easterEggDiscoveryId,
+          moves: current.moves,
+          timer: totalTime,
+          finalTime: result === 'completed' || result === 'game-over' ? totalTime : null,
+          historyResult: result,
+          historyResumePending: result === 'abandoned',
+          stageStats: current.stageStats,
+          seed: current.seed,
+          game: { over: result === 'game-over', won: result === 'completed' }
+        });
+      }
+
+      function recordCurrentGame(result = 'abandoned') {
+        if (historyRecorded || tutorialActive) return false;
+        const actualResult = gameWon ? 'completed' : gameOver ? 'game-over' : result;
+        const archiveCode = createArchive(actualResult);
+        const stageStats = getCompletedStageStats();
+        const record = normalize({
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          result: actualResult,
+          completedAt: Date.now(),
+          moves,
+          totalTime: Math.max(0, Math.floor(Number(actualResult === 'completed' || actualResult === 'game-over' ? finalElapsedSeconds : currentElapsedSeconds()) || 0)),
+          totalScore: getTotalScore(stageStats),
+          stage: gameStage,
+          easterEggId,
+          stageStats,
+          archiveCode
+        });
+        if (!record) return false;
+        const saved = saveAll([record, ...readAll()]);
+        if (saved) {
+          historyRecorded = true;
+          historyResumePending = false;
+          if (historyModal?.classList.contains('active')) render();
+        }
+        return saved;
+      }
+
+      function resultLabel(result) {
+        return t(result === 'completed' ? 'historyCompleted' : result === 'game-over' ? 'historyGameOver' : 'historyAbandoned');
+      }
+
+      function scoreSummary(record) {
+        if (record.totalScore === null) {
+          return `${t('historyTotalScore')}${t('historyScoreUnsettled')}`;
+        }
+        const label = record.result === 'completed' ? t('historyTotalScore') : t('historyCompletedStageScore');
+        return `${label}${record.totalScore}`;
+      }
+
+      function formatDate(timestamp) {
+        return new Date(timestamp).toLocaleString(currentLanguage === 'en' ? 'en-US' : 'zh-CN');
+      }
+
+      function render() {
+        if (!historyList) return;
+        const records = readAll();
+        if (!records.length) {
+          historyList.innerHTML = `<div class="history-empty">${escapeHtml(t('historyEmpty'))}</div>`;
+          return;
+        }
+        historyList.innerHTML = records.map((record) => {
+          const route = record.easterEggId ? ` · ${escapeHtml(t('historyEasterEgg').replace('{value}', record.easterEggId))}` : '';
+          const stageRows = record.stageStats
+            .filter((stage) => stage.completed && Number.isFinite(stage.score))
+            .map((stage) => `<span>${escapeHtml(t(`stage${stage.number}`))} ${stage.score} · ${formatTime(stage.time)} · ${stage.moves} ${escapeHtml(t('stepsUnit'))}</span>`)
+            .join('');
+          return `<article class="history-item" data-history-id="${escapeHtml(record.id)}">
+            <div class="history-item-head"><strong class="history-result history-result-${escapeHtml(record.result)}">${escapeHtml(resultLabel(record.result))}</strong><time>${escapeHtml(formatDate(record.completedAt))}</time></div>
+            <div class="history-item-summary"><span>${escapeHtml(t('historyTotalTime'))} ${formatTime(record.totalTime)}</span><span>${escapeHtml(t('historyTotalMoves'))} ${record.moves}</span><span>${escapeHtml(scoreSummary(record))}</span>${route}</div>
+            <div class="history-stage-summary">${stageRows || `<span>${escapeHtml(t('historyNoCompletedStageData'))}</span>`}</div>
+            <div class="history-item-actions"><button class="btn secondary small" type="button" data-history-copy="${escapeHtml(record.id)}">${escapeHtml(t('historyCopy'))}</button><button class="btn small" type="button" data-history-restore="${escapeHtml(record.id)}">${escapeHtml(t('historyRestore'))}</button></div>
+          </article>`;
+        }).join('');
+      }
+
+      function find(id) { return readAll().find((record) => record.id === id) || null; }
+
+      async function copy(id) {
+        const record = find(id);
+        if (!record) return;
+        try {
+          if (!await copyTextToClipboard(record.archiveCode)) throw new Error('clipboard unavailable');
+          if (historyStatus) historyStatus.textContent = t('historyCopySuccess');
+        } catch (error) {
+          console.warn('复制历史归档失败', error);
+          if (historyStatus) historyStatus.textContent = t('historyCopyFailed');
+        }
+      }
+
+      function requestRestore(id) {
+        const record = find(id);
+        if (!record || !historyRestoreConfirmModal) return;
+        historyRestoreConfirmModal.dataset.historyId = record.id;
+        if (historyRestoreConfirmBody) historyRestoreConfirmBody.textContent = t('historyRestoreConfirmBody');
+        ModalManager.show(historyRestoreConfirmModal, null, { focus: cancelHistoryRestoreBtn });
+      }
+
+      function closeRestoreConfirm() {
+        ModalManager.hide(historyRestoreConfirmModal);
+        if (historyRestoreConfirmModal) delete historyRestoreConfirmModal.dataset.historyId;
+      }
+
+      function restoreConfirmed() {
+        const id = historyRestoreConfirmModal?.dataset.historyId;
+        const record = find(id);
+        if (!record) { closeRestoreConfirm(); return; }
+        try {
+          const state = sanitizeGameState(parseHistorySave(record.archiveCode));
+          applyGameState(state);
+          historyRecorded = true;
+          gamePaused = false;
+          setPauseVisible(false);
+          if (gameOver || gameWon) stopTimer();
+          else startTimer(false);
+          syncGameState();
+          // 恢复历史是用户明确执行的写入，即使自动保存关闭，也要让刷新后保持恢复结果。
+          try { localStorage.setItem(SAVE_STORAGE_KEY, serializeGameState()); } catch (_) {}
+          closeRestoreConfirm();
+          close();
+          if (historyStatus) historyStatus.textContent = t('historyRestoreSuccess');
+        } catch (error) {
+          console.warn('恢复历史归档失败', error);
+          closeRestoreConfirm();
+          if (historyStatus) historyStatus.textContent = t('historyRestoreFailed');
+        }
+      }
+
+      function open() {
+        render();
+        if (historyStatus) historyStatus.textContent = '';
+        ModalManager.show(historyModal, historyBtn);
+      }
+
+      function close() { ModalManager.hide(historyModal); }
+
+      function bind() {
+        historyBtn?.addEventListener('click', open);
+        closeHistoryBtn?.addEventListener('click', close);
+        historyModal?.addEventListener('click', (event) => { if (event.target === historyModal) close(); });
+        historyList?.addEventListener('click', (event) => {
+          const copyButton = event.target.closest('[data-history-copy]');
+          const restoreButton = event.target.closest('[data-history-restore]');
+          if (copyButton) copy(copyButton.dataset.historyCopy);
+          else if (restoreButton) requestRestore(restoreButton.dataset.historyRestore);
+        });
+        cancelHistoryRestoreBtn?.addEventListener('click', closeRestoreConfirm);
+        confirmHistoryRestoreBtn?.addEventListener('click', restoreConfirmed);
+        historyRestoreConfirmModal?.addEventListener('click', (event) => { if (event.target === historyRestoreConfirmModal) closeRestoreConfirm(); });
+      }
+
+      return { bind, open, close, render, recordCurrentGame, closeRestoreConfirm };
+    })();
+
     function saveToLocalStorage() {
       if (!autoSaveEnabled) return false;
       // 指引使用的是脚本棋盘，绝不能覆盖玩家真实存档。
@@ -2921,17 +3258,28 @@
 
     async function copyTextToClipboard(text) {
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(text);
-        return true;
+        try {
+          await navigator.clipboard.writeText(text);
+          return true;
+        } catch (_) {}
       }
-      if (saveTextarea) {
-        saveTextarea.focus();
-        saveTextarea.select();
-        const ok = document.execCommand('copy');
-        saveTextarea.setSelectionRange(0, 0);
-        return ok;
+      const textarea = saveTextarea && settingsModal?.classList.contains('active')
+        ? saveTextarea
+        : document.createElement('textarea');
+      const temporary = textarea !== saveTextarea;
+      if (temporary) {
+        textarea.value = text;
+        textarea.setAttribute('readonly', '');
+        textarea.style.position = 'fixed';
+        textarea.style.left = '-9999px';
+        document.body.appendChild(textarea);
       }
-      return false;
+      textarea.focus();
+      textarea.select();
+      const ok = document.execCommand('copy');
+      textarea.setSelectionRange(0, 0);
+      if (temporary) textarea.remove();
+      return ok;
     }
 
     function openSettingsModal() {
@@ -3034,6 +3382,7 @@
       if (leaderboardModal) leaderboardModal.addEventListener('click', (e) => { if (e.target === leaderboardModal) Leaderboard.close(); });
       document.querySelectorAll('[data-leaderboard-stage]').forEach((button) => button.addEventListener('click', () => Leaderboard.select(button.dataset.leaderboardStage)));
       document.querySelectorAll('[data-leaderboard-metric]').forEach((button) => button.addEventListener('click', () => Leaderboard.select(undefined, button.dataset.leaderboardMetric)));
+      History.bind();
       if (langToggleBtn) langToggleBtn.addEventListener('click', toggleLanguage);
       updateLanguageButtons();
 
@@ -3056,7 +3405,7 @@
         exportSaveBtn.addEventListener('click', async () => {
           try {
             const save = exportSave();
-            await copyTextToClipboard(save);
+            if (!await copyTextToClipboard(save)) throw new Error('clipboard unavailable');
             setArchiveStatus(t('exportSuccess'), 'success');
           } catch (error) {
             console.warn('导出存档失败', error);
@@ -4138,7 +4487,7 @@
     function calculateStageScore(stageNumber, stats) {
       const key = `stage${stageNumber}`;
       const ref = SCORE_REFERENCES[key];
-      if (!ref || !stats) return 0;
+      if (!ref || !stats || stats.status !== 'done') return null;
       const movesScore = scoreEfficiency(stats.moves, ref.targetMoves, ref.maxMoves);
       const timeScore = scoreEfficiency(stats.time, ref.targetTime, ref.maxTime);
       return Math.round(movesScore * 0.7 + timeScore * 0.3);
@@ -4166,19 +4515,22 @@
       return [1, 2, 3].map((number) => {
         const key = `stage${number}`;
         const value = raw[key] || {};
+        const completed = value.status === 'done';
         return {
           number,
           key,
+          status: value.status || 'pending',
+          completed,
           time: Math.max(0, Math.floor(Number(value.time) || 0)),
           moves: Math.max(0, Math.floor(Number(value.moves) || 0)),
-          score: calculateStageScore(number, value)
+          score: completed ? calculateStageScore(number, value) : null
         };
       });
     }
 
     function getTotalScore(stageStats) {
-      const completed = stageStats.filter((item) => item.time > 0 || item.moves > 0);
-      if (!completed.length) return 0;
+      const completed = stageStats.filter((item) => item?.completed === true && Number.isFinite(Number(item.score)));
+      if (!completed.length) return null;
       return Math.round(completed.reduce((sum, item) => sum + item.score, 0) / completed.length);
     }
 
@@ -4419,6 +4771,7 @@
       StageStatistics.completeStage(3);
       stopTimer();
       completeEasterEgg(routeId, { time: finalElapsedSeconds, moves });
+      History.recordCurrentGame('completed');
       persistIfNeeded();
       await playVictoryAura(VICTORY_DURATION);
       clearMessage();
@@ -4447,6 +4800,7 @@
         time: finalElapsedSeconds,
         moves
       });
+      History.recordCurrentGame('completed');
       persistIfNeeded();
       await playVictoryAura(VICTORY_DURATION);
       clearMessage();
@@ -4527,6 +4881,9 @@
 
       if (!canMove) {
         gameOver = true;
+        finalElapsedSeconds = currentElapsedSeconds();
+        stopTimer();
+        History.recordCurrentGame('game-over');
         showMessage(t('gameOver'), 'info');
       }
     }
@@ -4626,6 +4983,11 @@
           return;
         }
 
+        if (historyResumePending) {
+          historyResumePending = false;
+          historyRecorded = false;
+        }
+
         const emptyAfterResolution = countBoardEmpties();
         const randomTile = addRandomTile();
         if (randomTile) await animateSpawn([randomTile]);
@@ -4680,12 +5042,15 @@
     async function newGame() {
       if (isAnimating || tutorialActive || settlementActive || easterEggDiscoveryActive) return;
 
+      History.recordCurrentGame('abandoned');
       isAnimating = true;
       try {
         hideSettlement();
         gamePaused = false;
         elapsedBeforePause = 0;
         finalElapsedSeconds = null;
+        historyRecorded = false;
+        historyResumePending = false;
         resetSpawnHistory();
         setPauseVisible(false);
         stopTimer();

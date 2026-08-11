@@ -1050,7 +1050,7 @@
     function calculateStageScore(stageNumber, stats) {
       const key = `stage${stageNumber}`;
       const ref = SCORE_REFERENCES[key];
-      if (!ref || !stats) return 0;
+      if (!ref || !stats || stats.status !== 'done') return null;
       const movesScore = scoreEfficiency(stats.moves, ref.targetMoves, ref.maxMoves);
       const timeScore = scoreEfficiency(stats.time, ref.targetTime, ref.maxTime);
       return Math.round(movesScore * 0.7 + timeScore * 0.3);
@@ -1078,19 +1078,22 @@
       return [1, 2, 3].map((number) => {
         const key = `stage${number}`;
         const value = raw[key] || {};
+        const completed = value.status === 'done';
         return {
           number,
           key,
+          status: value.status || 'pending',
+          completed,
           time: Math.max(0, Math.floor(Number(value.time) || 0)),
           moves: Math.max(0, Math.floor(Number(value.moves) || 0)),
-          score: calculateStageScore(number, value)
+          score: completed ? calculateStageScore(number, value) : null
         };
       });
     }
 
     function getTotalScore(stageStats) {
-      const completed = stageStats.filter((item) => item.time > 0 || item.moves > 0);
-      if (!completed.length) return 0;
+      const completed = stageStats.filter((item) => item?.completed === true && Number.isFinite(Number(item.score)));
+      if (!completed.length) return null;
       return Math.round(completed.reduce((sum, item) => sum + item.score, 0) / completed.length);
     }
 
@@ -1331,6 +1334,7 @@
       StageStatistics.completeStage(3);
       stopTimer();
       completeEasterEgg(routeId, { time: finalElapsedSeconds, moves });
+      History.recordCurrentGame('completed');
       persistIfNeeded();
       await playVictoryAura(VICTORY_DURATION);
       clearMessage();
@@ -1359,6 +1363,7 @@
         time: finalElapsedSeconds,
         moves
       });
+      History.recordCurrentGame('completed');
       persistIfNeeded();
       await playVictoryAura(VICTORY_DURATION);
       clearMessage();
@@ -1439,6 +1444,9 @@
 
       if (!canMove) {
         gameOver = true;
+        finalElapsedSeconds = currentElapsedSeconds();
+        stopTimer();
+        History.recordCurrentGame('game-over');
         showMessage(t('gameOver'), 'info');
       }
     }
