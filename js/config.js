@@ -94,6 +94,7 @@
     const ANNOUNCEMENTS = [
       { id: 'announcement-github-repo', type: 'notice', pinned: true },
       { id: 'announcement-community-group', type: 'notice', pinned: true },
+      { id: 'announcement-1.1.1', version: '1.1.1', date: '2026-08-11', type: 'update' },
       { id: 'announcement-1.1.0', version: '1.1.0', date: '2026-08-11', type: 'update' },
       { id: 'announcement-0.6.5', version: '0.6.5', date: '2026-07-12', type: 'update' },
       { id: 'announcement-0.6.0', version: '0.6.0', date: '2026-07-12', type: 'update' },

@@ -388,9 +388,18 @@
 
       document.addEventListener('keydown', (e) => {
         if (isAnimating) return;
-        if (isInteractiveKeyTarget(e.target) || hasBlockingDialogOpen()) return;
+        if (hasBlockingDialogOpen()) return;
         // initControls 在 boot 等待免责声明期间就已执行，声明未关闭前不接受任何游戏输入。
         if (isStartupDisclaimerOpen()) return;
+
+        // 暂停不再是全页面模态框，因此保留 Escape 恢复游戏的快捷键。
+        if (gamePaused && e.key === 'Escape') {
+          e.preventDefault();
+          resumeGame();
+          return;
+        }
+
+        if (isInteractiveKeyTarget(e.target)) return;
 
         if (e.key === ' ' || e.code === 'Space' || e.key === 'p' || e.key === 'P') {
           e.preventDefault();

@@ -598,10 +598,26 @@
 
     function setPauseVisible(visible, restoreFocus = false) {
       if (!pauseOverlay) return;
-      if (visible) ModalManager.show(pauseOverlay, pauseBtn, { focus: resumeBtn });
-      else ModalManager.hide(pauseOverlay, { skipFocus: !restoreFocus });
+      // 暂停只锁住棋盘所在的 board。不能交给 ModalManager，否则它会把
+      // game-container 及页面上的其他入口一起设为 inert。
+      pauseOverlay.classList.toggle('active', visible);
+      pauseOverlay.setAttribute('aria-hidden', visible ? 'false' : 'true');
+      pauseOverlay.inert = !visible;
+      if (visible) pauseOverlay.removeAttribute('inert');
+      else pauseOverlay.setAttribute('inert', '');
       gameContainer?.classList.toggle('pause-active', visible);
       if (pauseBtn) pauseBtn.textContent = visible ? t('continue') : t('pause');
+
+      if (visible) {
+        requestAnimationFrame(() => {
+          if (!gamePaused || ModalManager.hasOpen() || !resumeBtn) return;
+          resumeBtn.focus({ preventScroll: true });
+        });
+      } else if (restoreFocus) {
+        requestAnimationFrame(() => {
+          if (!ModalManager.hasOpen() && pauseBtn) pauseBtn.focus({ preventScroll: true });
+        });
+      }
     }
 
     function updatePausePanel() {

@@ -358,6 +358,14 @@
             summary: '交流反馈 Q 群：1061312672',
             content: '交流反馈 Q 群：1061312672'
           },
+          'announcement-1.1.1': {
+            title: '1.1.1 版本更新公告',
+            summary: '修复暂停时页面其他入口无法点击的问题',
+            content: `本次更新修复暂停功能：
+- 暂停时仅锁定棋盘操作，棋盘外的设置、公告、成就、排行榜、历史记录等入口仍可点击
+- 保留暂停面板中的“继续游戏”按钮和 Esc 恢复操作
+- 修正暂停遮罩的焦点与可访问性处理`
+          },
           'announcement-1.1.0': {
             title: '1.1.0 版本更新公告',
             summary: '新增历史记录与更准确的未完成对局评分',
@@ -860,6 +868,14 @@
             title: 'Feedback QQ Group',
             summary: 'Feedback QQ Group: 1061312672',
             content: 'Feedback QQ Group: 1061312672'
+          },
+          'announcement-1.1.1': {
+            title: 'v1.1.1 Update Notice',
+            summary: 'Fixed page controls becoming unavailable while paused',
+            content: `This update fixes the pause behavior:
+- Only board interaction is locked while paused; settings, announcements, achievements, leaderboard and history remain available
+- The Resume button and Escape shortcut continue to restore the game
+- Improved focus and accessibility handling for the pause overlay`
           },
           'announcement-1.1.0': {
             title: 'v1.1.0 Update Notice',

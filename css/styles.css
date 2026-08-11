@@ -383,6 +383,7 @@
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       opacity: 0;
+      visibility: hidden;
       pointer-events: none;
       transform: scale(0.985);
       transition: opacity .18s ease, transform .18s ease;
@@ -418,12 +419,9 @@
       z-index: 1;
     }
 
-    .game-container.pause-active > .controls {
-      display: none;
-    }
-
     .pause-overlay.active {
       opacity: 1;
+      visibility: visible;
       pointer-events: auto;
       transform: scale(1);
     }

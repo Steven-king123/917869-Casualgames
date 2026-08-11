@@ -358,6 +358,14 @@
             summary: '交流反馈 Q 群：1061312672',
             content: '交流反馈 Q 群：1061312672'
           },
+          'announcement-1.1.1': {
+            title: '1.1.1 版本更新公告',
+            summary: '修复暂停时页面其他入口无法点击的问题',
+            content: `本次更新修复暂停功能：
+- 暂停时仅锁定棋盘操作，棋盘外的设置、公告、成就、排行榜、历史记录等入口仍可点击
+- 保留暂停面板中的“继续游戏”按钮和 Esc 恢复操作
+- 修正暂停遮罩的焦点与可访问性处理`
+          },
           'announcement-1.1.0': {
             title: '1.1.0 版本更新公告',
             summary: '新增历史记录与更准确的未完成对局评分',
@@ -861,6 +869,14 @@
             summary: 'Feedback QQ Group: 1061312672',
             content: 'Feedback QQ Group: 1061312672'
           },
+          'announcement-1.1.1': {
+            title: 'v1.1.1 Update Notice',
+            summary: 'Fixed page controls becoming unavailable while paused',
+            content: `This update fixes the pause behavior:
+- Only board interaction is locked while paused; settings, announcements, achievements, leaderboard and history remain available
+- The Resume button and Escape shortcut continue to restore the game
+- Improved focus and accessibility handling for the pause overlay`
+          },
           'announcement-1.1.0': {
             title: 'v1.1.0 Update Notice',
             summary: 'Added game history and more accurate incomplete-run scoring',
@@ -1197,6 +1213,7 @@
     const ANNOUNCEMENTS = [
       { id: 'announcement-github-repo', type: 'notice', pinned: true },
       { id: 'announcement-community-group', type: 'notice', pinned: true },
+      { id: 'announcement-1.1.1', version: '1.1.1', date: '2026-08-11', type: 'update' },
       { id: 'announcement-1.1.0', version: '1.1.0', date: '2026-08-11', type: 'update' },
       { id: 'announcement-0.6.5', version: '0.6.5', date: '2026-07-12', type: 'update' },
       { id: 'announcement-0.6.0', version: '0.6.0', date: '2026-07-12', type: 'update' },
@@ -2257,10 +2274,26 @@
 
     function setPauseVisible(visible, restoreFocus = false) {
       if (!pauseOverlay) return;
-      if (visible) ModalManager.show(pauseOverlay, pauseBtn, { focus: resumeBtn });
-      else ModalManager.hide(pauseOverlay, { skipFocus: !restoreFocus });
+      // 暂停只锁住棋盘所在的 board。不能交给 ModalManager，否则它会把
+      // game-container 及页面上的其他入口一起设为 inert。
+      pauseOverlay.classList.toggle('active', visible);
+      pauseOverlay.setAttribute('aria-hidden', visible ? 'false' : 'true');
+      pauseOverlay.inert = !visible;
+      if (visible) pauseOverlay.removeAttribute('inert');
+      else pauseOverlay.setAttribute('inert', '');
       gameContainer?.classList.toggle('pause-active', visible);
       if (pauseBtn) pauseBtn.textContent = visible ? t('continue') : t('pause');
+
+      if (visible) {
+        requestAnimationFrame(() => {
+          if (!gamePaused || ModalManager.hasOpen() || !resumeBtn) return;
+          resumeBtn.focus({ preventScroll: true });
+        });
+      } else if (restoreFocus) {
+        requestAnimationFrame(() => {
+          if (!ModalManager.hasOpen() && pauseBtn) pauseBtn.focus({ preventScroll: true });
+        });
+      }
     }
 
     function updatePausePanel() {
@@ -5301,9 +5334,18 @@
 
       document.addEventListener('keydown', (e) => {
         if (isAnimating) return;
-        if (isInteractiveKeyTarget(e.target) || hasBlockingDialogOpen()) return;
+        if (hasBlockingDialogOpen()) return;
         // initControls 在 boot 等待免责声明期间就已执行，声明未关闭前不接受任何游戏输入。
         if (isStartupDisclaimerOpen()) return;
+
+        // 暂停不再是全页面模态框，因此保留 Escape 恢复游戏的快捷键。
+        if (gamePaused && e.key === 'Escape') {
+          e.preventDefault();
+          resumeGame();
+          return;
+        }
+
+        if (isInteractiveKeyTarget(e.target)) return;
 
         if (e.key === ' ' || e.code === 'Space' || e.key === 'p' || e.key === 'P') {
           e.preventDefault();
